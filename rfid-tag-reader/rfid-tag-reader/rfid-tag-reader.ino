@@ -127,7 +127,7 @@ void printMessage2() {
     lcd.print(mfrc522.uid.uidByte[i], HEX);
   }
   lcd.setCursor(0, 1);
-  lcd.print("Welcome");
+  lcd.print("Greetings");
   delay(5000);
   //lcd.noDisplay();
   lcd.clear();
