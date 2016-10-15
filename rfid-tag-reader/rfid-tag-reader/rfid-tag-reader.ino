@@ -43,6 +43,7 @@
 #define RST_PIN         9          // Configurable, see typical pin layout above
 #define SS_PIN          10         // Configurable, see typical pin layout above
 
+int readFromSerial();
 //void dumpToSerial(Uid *uid);
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance
@@ -54,6 +55,7 @@ int tim = 500;  //the value of delay time
 // initialize the library with the numbers of the interface pins
 LiquidCrystal_I2C lcd(0x27,16,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
 unsigned long initialTime = millis();
+int checkin = 0;
 /*********************************************************/
 
 void setup() {
@@ -83,6 +85,7 @@ void loop() {
 	//mfrc522.PICC_DumpToSerial(&(mfrc522.uid));
   //dumpToSerial(&(mfrc522.uid));
   dumpToSerial();
+  checkin = readFromSerial();
   mfrc522.PICC_HaltA();
 
   //lcd.backlight();
@@ -127,11 +130,32 @@ void printMessage2() {
     lcd.print(mfrc522.uid.uidByte[i], HEX);
   }
   lcd.setCursor(0, 1);
-  lcd.print("Greetings");
+  if ((char) checkin == '1') {
+    lcd.print("Check In");
+  } else if ((char) checkin == '2') {
+    lcd.print("Check Out");
+  } else {
+    lcd.print("Greetings");
+  }
+  //lcd.print((char) checkin);
   delay(5000);
   //lcd.noDisplay();
   lcd.clear();
   lcd.print("Scan card");
+}
+/************************************************************/
+
+/************************************************************/
+int readFromSerial() {
+  int count = 0;
+  while (Serial.available() <= 0) {
+    if (count > 10) {
+      return 0;
+    }
+    delay(100);
+    count++;
+  }
+  return Serial.read();
 }
 /************************************************************/
 
