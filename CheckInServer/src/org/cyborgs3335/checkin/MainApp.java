@@ -5,12 +5,19 @@ import java.io.IOException;
 
 import jssc.SerialPortException;
 
+/**
+ * Starts up server, then scans IDs from terminal and/or Arduino via serial port.
+ *
+ * @author brian
+ *
+ */
 public class MainApp {
 
-  public MainApp() {
-    // TODO Auto-generated constructor stub
-  }
-
+  /**
+   * Scan IDs from Arduino via serial port, spawning task in a thread.
+   * @param portName name of serial port (e.g., /dev/ttyACM0)
+   * @param daemonThread if true, make spawned task thread a daemon thread
+   */
   public static void scanIdsSerial(final String portName, boolean daemonThread) {
     SerialComm.printSerialPortNames();
     Thread t = new Thread(new Runnable() {
@@ -24,12 +31,11 @@ public class MainApp {
           throw new RuntimeException("Caught serial port exception.  Exiting...", e);
         }
         CheckInClient checkInClient = new CheckInClient();
-        //int code = 0;
         while (true) {
-          //Card UID: 62 21 E4 D5
-          //"Card UID: 94 18 60 EC";
           String readLine = comm.readLine();
           if (readLine.startsWith("Firmware Version") || readLine.startsWith("Scan PICC to see UID")) {
+            // Firmware Version: 0x92 = v2.0
+            // Scan PICC to see UID, SAK, type, and data blocks...
             continue;
           }
           String value = readLine.replace("Card UID:", "").trim().replaceAll("\\s+", "");
@@ -38,13 +44,12 @@ public class MainApp {
           try {
             id = Long.parseLong(value, 16);
           } catch (NumberFormatException e) {
-            //Serial Port Read: "Firmware Version: 0x92 = v2.0"
-            //Serial Port Read: "Scan PICC to see UID, SAK, type, and data blocks..."
+            // Card UID: 62 21 E4 D5
+            // Card UID: 94 18 60 EC;
             System.out.println("Expected to receive Card UID, but received: \"" + readLine + "\" + value " + value + " id " + id);
             continue;
           }
           System.out.println("Serial Port Read: \"" + readLine + "\" + value " + value + " id " + id);
-          //comm.writeString("" + (code++%3 + 1));
           try {
             boolean checkIn = checkInClient.accept(id);
             if (checkIn) {
@@ -64,6 +69,10 @@ public class MainApp {
     t.start();
   }
 
+  /**
+   * Scan IDs from terminal, with special IDs for exiting (-1), and printing
+   * the current "database" (-2).
+   */
   public static void scanIdsTerminal() {
     IdScanner idScanner = new IdScanner(new CheckInClient());
     while (true) {
@@ -89,6 +98,12 @@ public class MainApp {
     }
   }
 
+  /**
+   * Main application, with optional argument for serial port name.  Starts
+   * up server, then scans IDs from terminal and/or Arduino via serial port.
+   * @param args name of serial port (default is /dev/ttyACM0)
+   * @throws IOException
+   */
   public static void main(String[] args) throws IOException {
     final String portName = (args.length == 1) ? args[0] : "/dev/ttyACM0";
 

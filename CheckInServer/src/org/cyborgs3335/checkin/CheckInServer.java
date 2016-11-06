@@ -16,6 +16,13 @@ import java.util.Map;
 
 import org.cyborgs3335.checkin.CheckInEvent.Status;
 
+/**
+ * Singleton check-in server using a map in memory as the "database".  The map
+ * can be persisted to a file, and can be loaded from a file.
+ *
+ * @author brian
+ *
+ */
 public class CheckInServer {
 
   private final Map<Long, AttendanceRecord> map = Collections.synchronizedMap(new HashMap<Long, AttendanceRecord>());
@@ -66,6 +73,10 @@ public class CheckInServer {
     map.put(id, record);
   }
 
+  /**
+   * Return the check-in server instance.
+   * @return check-in server instance
+   */
   public static CheckInServer getInstance() {
     return Singleton.INSTANCE;
   }
@@ -175,6 +186,9 @@ public class CheckInServer {
     }
   }
 
+  /**
+   * Print the last check-in event for each attendance record.
+   */
   public void print() {
     DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
     synchronized (map) {
@@ -186,10 +200,5 @@ public class CheckInServer {
             + event.getStatus() + " " + dateFormat.format(new Date(event.getTimeStamp())));
       }
     }
-  }
-
-  public static void main(String[] args) {
-    // TODO Auto-generated method stub
-
   }
 }

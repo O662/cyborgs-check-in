@@ -21,10 +21,4 @@ public class CheckInClient {
   public boolean accept(long id) throws UnknownUserException {
     return server.accept(id);
   }
-
-  public static void main(String[] args) {
-    // TODO Auto-generated method stub
-
-  }
-
 }
