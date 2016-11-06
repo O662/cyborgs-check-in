@@ -135,7 +135,7 @@ void printMessage2() {
   } else if ((char) checkin == '2') {
     lcd.print("Check Out");
   } else {
-    lcd.print("Greetings");
+    lcd.print("Unknown ID");
   }
   //lcd.print((char) checkin);
   delay(5000);
