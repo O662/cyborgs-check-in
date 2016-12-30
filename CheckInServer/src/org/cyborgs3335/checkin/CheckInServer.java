@@ -13,6 +13,8 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 
 import org.cyborgs3335.checkin.CheckInEvent.Status;
 
@@ -27,15 +29,17 @@ public class CheckInServer {
 
   private final Map<Long, AttendanceRecord> map = Collections.synchronizedMap(new HashMap<Long, AttendanceRecord>());
 
+  private CheckInActivity activity = null;
+
   private static class Singleton {
     private static final CheckInServer INSTANCE = new CheckInServer();
   }
 
   private CheckInServer() {
-    addDefaultUsers();
+    //addDefaultUsers();
   }
 
-  private void addDefaultUsers() {
+  /*package */void addDefaultUsers() {
     char first = 'a';
     char last = 'z';
     for (long id = 0; id < 10; id++) {
@@ -71,6 +75,39 @@ public class CheckInServer {
     record = new AttendanceRecord(person);
     record.getEventList().add(event);
     map.put(id, record);
+  }
+
+  /*package */Person addUser(String firstName, String lastName) {
+    long id = getNewId();
+    CheckInEvent event = new CheckInEvent(Status.CheckedOut, 0);
+    Person person = new Person(id, firstName, lastName);
+    AttendanceRecord record = new AttendanceRecord(person);
+    record.getEventList().add(event);
+    map.put(id, record);
+    return person;
+  }
+
+  private long getNewId() {
+    Random random = new Random();
+    for (int count = 0; count < 100; count++) {
+      long id = Math.abs(random.nextLong());
+      if (!map.containsKey(id)) {
+        return id;
+      }
+    }
+    throw new IllegalStateException("Cannot find a new unique ID!");
+  }
+
+  public Person findPerson(String firstName, String lastName) {
+    Person person = null;
+    for (Long id : map.keySet()) {
+      Person p = map.get(id).getPerson();
+      if (p.getFirstName().equals(firstName) && p.getLastName().equals(lastName)) {
+        person = p;
+        break;
+      }
+    }
+    return person;
   }
 
   /**
@@ -113,6 +150,14 @@ public class CheckInServer {
   }
 
   /**
+   * Set the current activity name; e.g., name, start time, end time, ...
+   * @param activity current activity
+   */
+  public void setActivity(CheckInActivity activity) {
+    this.activity = activity;
+  }
+
+  /**
    * Load "database" from filesystem.
    * @param path directory containing "database"
    * @throws IOException on I/O error loading "database" from filesystem 
@@ -132,11 +177,21 @@ public class CheckInServer {
       fin = new FileInputStream(path);
       ois = new ObjectInputStream(fin);
       Object o = ois.readObject();
+      if (o instanceof CheckInActivity) {
+        activity = (CheckInActivity) o;
+      } else {
+        throw new IllegalStateException("Expected to read CheckInActivity."
+            + "However, encountered " + o.getClass() + " instead.");
+      }
+      o = ois.readObject();
       if (o instanceof Map) {
         Map<Long, AttendanceRecord> inmap = (Map<Long, AttendanceRecord>) o;
         synchronized (map) {
           map.putAll(inmap);
         }
+      } else {
+        throw new IllegalStateException("Expected to read attendance record Map<Long, AttendanceRecord>."
+            + "However, encountered " + o.getClass() + " instead.");
       }
     } catch (IOException | ClassNotFoundException e) {
       e.printStackTrace();
@@ -170,6 +225,7 @@ public class CheckInServer {
     try {
       fout = new FileOutputStream(path);
       oos = new ObjectOutputStream(fout);
+      oos.writeObject(activity);
       synchronized (map) {
         oos.writeObject(map);
       }
@@ -186,11 +242,26 @@ public class CheckInServer {
     }
   }
 
+  public CheckInActivity getActivity() {
+    return activity;
+  }
+
+  public Set<Long> getIdSet() {
+    return map.keySet();
+  }
+
+  public AttendanceRecord getAttendanceRecord(long id) {
+    return map.get(id);
+  }
+
   /**
    * Print the last check-in event for each attendance record.
    */
   public void print() {
     DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
+    if (activity != null) {
+      activity.print(dateFormat);
+    }
     synchronized (map) {
       for (Long id : map.keySet()) {
         AttendanceRecord record = map.get(id);

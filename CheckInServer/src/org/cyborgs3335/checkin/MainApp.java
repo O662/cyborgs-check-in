@@ -2,6 +2,7 @@ package org.cyborgs3335.checkin;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Calendar;
 
 import jssc.SerialPortException;
 
@@ -118,6 +119,12 @@ public class MainApp {
         throw new RuntimeException("Could not create directory " + path + "for saving database!");
       }
     }
+
+    long timeStart = System.currentTimeMillis();
+    long timeEnd = timeStart + 60L*60L*1000L;
+    CheckInActivity activity = new CheckInActivity("Default", timeStart, timeEnd);
+    server.setActivity(activity);
+
     server.print();
     scanIdsSerial(portName, true);
     scanIdsTerminal();
