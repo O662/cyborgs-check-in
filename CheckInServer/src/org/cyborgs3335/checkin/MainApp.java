@@ -1,8 +1,15 @@
 package org.cyborgs3335.checkin;
 
+import java.awt.EventQueue;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+
+import org.cyborgs3335.checkin.ui.MainWindow;
 
 import jssc.SerialPortException;
 
@@ -13,6 +20,14 @@ import jssc.SerialPortException;
  *
  */
 public class MainApp {
+
+  private final DateFormat dateFormat;
+  private String path;
+
+  public MainApp() {
+    //dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
+    dateFormat = new SimpleDateFormat();
+  }
 
   /**
    * Scan IDs from Arduino via serial port, spawning task in a thread.
@@ -99,6 +114,47 @@ public class MainApp {
     }
   }
 
+  public void scanIdsUi() {
+    EventQueue.invokeLater(new Runnable() {
+
+      @Override
+      public void run() {
+        new MainWindow(new MainAppWindowListener());
+      }
+    });
+  }
+
+  public void setPath(String dbPath) {
+    path = dbPath;
+  }
+
+  private class MainAppWindowListener extends WindowAdapter {
+
+    @Override
+    public void windowClosing(WindowEvent e) {
+      System.out.println("Window closing received");
+      exitApp();
+    }
+
+    @Override
+    public void windowClosed(WindowEvent e) {
+      System.out.println("Window closed received");
+    }
+  }
+
+  private void exitApp() {
+    CheckInServer server = CheckInServer.getInstance();
+    server.print();
+    try {
+      server.dump(path);
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    System.exit(0);
+  }
+
+
   /**
    * Main application, with optional argument for serial port name.  Starts
    * up server, then scans IDs from terminal and/or Arduino via serial port.
@@ -109,7 +165,8 @@ public class MainApp {
     final String portName = (args.length == 1) ? args[0] : "/dev/ttyACM0";
 
     CheckInServer server = CheckInServer.getInstance();
-    String path = "/tmp/check-in-server2.dump";
+    String path = "/tmp/check-in-server-main-app-test.dump";
+    //final String path = "/tmp/check-in-server-new-user-test.dump";
     File dir = new File(path);
     if (dir.exists()) {
       server.load(path);
@@ -120,16 +177,21 @@ public class MainApp {
       }
     }
 
+    MainApp app = new MainApp();
+    app.setPath(path);
+
     long timeStart = System.currentTimeMillis();
     long timeEnd = timeStart + 60L*60L*1000L;
     CheckInActivity activity = new CheckInActivity("Default", timeStart, timeEnd);
     server.setActivity(activity);
 
     server.print();
+    app.scanIdsUi();
     scanIdsSerial(portName, true);
     scanIdsTerminal();
-    server.print();
-    server.dump(path);
+    app.exitApp();
+    //server.print();
+    //server.dump(path);
   }
 
 }

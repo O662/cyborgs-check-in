@@ -38,6 +38,7 @@ public class NewUserApp extends JFrame {
 
   private static final long serialVersionUID = 1926718100094660447L;
   private final DateFormat dateFormat;
+  private String path;
 
   public NewUserApp() {
     //dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
@@ -55,6 +56,13 @@ public class NewUserApp extends JFrame {
     JMenu fileMenu = new JMenu("File");
     //fileMenu.setMnemonic(KeyEvent.VK_F);
     JMenuItem exitMenuItem = new JMenuItem("Exit");//, KeyEvent.VK_X);
+    exitMenuItem.addActionListener(new ActionListener() {
+
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        exitApp();
+      }
+    });
     fileMenu.add(exitMenuItem);
     menubar.add(fileMenu);
     setJMenuBar(menubar);
@@ -189,6 +197,22 @@ public class NewUserApp extends JFrame {
     }
   }
 
+  public void setPath(String p) {
+    path = p;
+  }
+
+  private void exitApp() {
+    CheckInServer server = CheckInServer.getInstance();
+    server.print();
+    try {
+      server.dump(path);
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    System.exit(0);
+  }
+
   /**
    * Main application, with optional argument for serial port name.  Starts
    * up server, then scans IDs from terminal and/or Arduino via serial port.
@@ -199,7 +223,7 @@ public class NewUserApp extends JFrame {
     CheckInServer server = CheckInServer.getInstance();
     //String path = "/tmp/check-in-server-new-user-"+System.currentTimeMillis()+".dump";
     //String path = "/tmp/check-in-server-new-user.dump";
-    String path = "/tmp/check-in-server-new-user-test.dump";
+    final String path = "/tmp/check-in-server-new-user-test.dump";
     File dir = new File(path);
     if (dir.exists()) {
       server.load(path);
@@ -220,7 +244,8 @@ public class NewUserApp extends JFrame {
 
       @Override
       public void run() {
-        new NewUserApp();
+        NewUserApp app = new NewUserApp();
+        app.setPath(path);
       }
     });
 

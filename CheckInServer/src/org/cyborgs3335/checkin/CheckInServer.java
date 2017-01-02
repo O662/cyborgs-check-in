@@ -1,5 +1,8 @@
 package org.cyborgs3335.checkin;
 
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeListenerProxy;
+import java.beans.PropertyChangeSupport;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -18,6 +21,8 @@ import java.util.Set;
 
 import org.cyborgs3335.checkin.CheckInEvent.Status;
 
+import sun.misc.JavaAWTAccess;
+
 /**
  * Singleton check-in server using a map in memory as the "database".  The map
  * can be persisted to a file, and can be loaded from a file.
@@ -27,7 +32,11 @@ import org.cyborgs3335.checkin.CheckInEvent.Status;
  */
 public class CheckInServer {
 
+  public static final String ACTIVITY_PROPERTY = "ACTIVITY_PROPERTY";
+
   private final Map<Long, AttendanceRecord> map = Collections.synchronizedMap(new HashMap<Long, AttendanceRecord>());
+
+  private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
   private CheckInActivity activity = null;
 
@@ -77,7 +86,7 @@ public class CheckInServer {
     map.put(id, record);
   }
 
-  /*package */Person addUser(String firstName, String lastName) {
+  public Person addUser(String firstName, String lastName) {
     long id = getNewId();
     CheckInEvent event = new CheckInEvent(Status.CheckedOut, 0);
     Person person = new Person(id, firstName, lastName);
@@ -150,11 +159,37 @@ public class CheckInServer {
   }
 
   /**
-   * Set the current activity name; e.g., name, start time, end time, ...
+   * Get the current activity.
+   * @return current activity
+   */
+  public CheckInActivity getActivity() {
+    return activity;
+  }
+
+  /**
+   * Set the current activity; e.g., name, start time, end time, ...
    * @param activity current activity
    */
   public void setActivity(CheckInActivity activity) {
+    CheckInActivity oldActivity = this.activity;
     this.activity = activity;
+    pcs.firePropertyChange(ACTIVITY_PROPERTY, oldActivity, activity);
+  }
+
+  public void addPropertyChangeListener(PropertyChangeListener listener) {
+    pcs.addPropertyChangeListener(listener);
+  }
+
+  public void removePropertyChangeListener(PropertyChangeListener listener) {
+    pcs.removePropertyChangeListener(listener);
+  }
+
+  public void addPropertyChangeListener(String propertyName, PropertyChangeListener listener) {
+    pcs.addPropertyChangeListener(propertyName, listener);
+  }
+
+  public void removePropertyChangeListener(String propertyName, PropertyChangeListener listener) {
+    pcs.removePropertyChangeListener(propertyName, listener);
   }
 
   /**
@@ -240,10 +275,6 @@ public class CheckInServer {
         }
       } 
     }
-  }
-
-  public CheckInActivity getActivity() {
-    return activity;
   }
 
   public Set<Long> getIdSet() {
