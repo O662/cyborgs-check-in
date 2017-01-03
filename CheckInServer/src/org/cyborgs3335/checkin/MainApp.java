@@ -1,5 +1,6 @@
 package org.cyborgs3335.checkin;
 
+import java.awt.Component;
 import java.awt.EventQueue;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -8,6 +9,9 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+
+import javax.swing.JComponent;
+import javax.swing.JOptionPane;
 
 import org.cyborgs3335.checkin.ui.MainWindow;
 
@@ -19,10 +23,11 @@ import jssc.SerialPortException;
  * @author brian
  *
  */
-public class MainApp {
+public class MainApp implements IDatabaseOperations {
 
   private final DateFormat dateFormat;
   private String path;
+  private Component parent = null;
 
   public MainApp() {
     //dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
@@ -115,11 +120,12 @@ public class MainApp {
   }
 
   public void scanIdsUi() {
+    final MainApp mainApp = this;
     EventQueue.invokeLater(new Runnable() {
 
       @Override
       public void run() {
-        new MainWindow(new MainAppWindowListener());
+        parent = new MainWindow(mainApp, new MainAppWindowListener());
       }
     });
   }
@@ -142,15 +148,29 @@ public class MainApp {
     }
   }
 
-  private void exitApp() {
+  public void loadDatabase() {
+    // TODO implement me
+  }
+
+  public void saveDatabase() {
+    saveDatabase(path);
+  }
+
+  public void saveDatabase(String newPath) {
     CheckInServer server = CheckInServer.getInstance();
     server.print();
     try {
-      server.dump(path);
+      server.dump(newPath);
+      path = newPath;
+      System.out.println("Save complete.");
     } catch (IOException e) {
-      // TODO Auto-generated catch block
+      JOptionPane.showMessageDialog(parent, e.getMessage(), "Save Error", JOptionPane.ERROR_MESSAGE);
       e.printStackTrace();
     }
+  }
+
+  private void exitApp() {
+    saveDatabase();
     System.exit(0);
   }
 

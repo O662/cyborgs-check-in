@@ -29,6 +29,7 @@ import javax.swing.SwingConstants;
 
 import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInServer;
+import org.cyborgs3335.checkin.IDatabaseOperations;
 import org.cyborgs3335.checkin.Person;
 import org.cyborgs3335.checkin.UnknownUserException;
 
@@ -40,15 +41,17 @@ public class MainWindow extends JFrame {
   private JTextField lastNameField;
   private JLabel personStatusField;
   private JLabel checkInStatusField;
+  private final IDatabaseOperations dbOperations;
   private final WindowListener windowListener;
 
   public MainWindow() {
-    this(null);
+    this(null, null);
   }
 
-  public MainWindow(WindowListener listener) {
+  public MainWindow(IDatabaseOperations databaseOperations, WindowListener listener) {
     //dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
     dateFormat = new SimpleDateFormat();
+    dbOperations = databaseOperations;
     windowListener = (listener != null) ? listener : new DefaultWindowListener();
     setSize(600, 400);
     build();
@@ -104,14 +107,24 @@ public class MainWindow extends JFrame {
     buttonPanel.add(Box.createHorizontalGlue());//, BorderLayout.EAST);
     panel.add(buttonPanel, BorderLayout.SOUTH);
 
+    // Set initial activity
+    CheckInActivity activity = CheckInServer.getInstance().getActivity();
+    if (activity != null) {
+      nameField.setText(activity.getName());
+      timeStartField.setText(dateFormat.format(activity.getStartDate()));
+      timeEndField.setText(dateFormat.format(activity.getEndDate()));
+    }
+    // Listen for changes to activity
     CheckInServer.getInstance().addPropertyChangeListener(CheckInServer.ACTIVITY_PROPERTY, new PropertyChangeListener() {
 
       @Override
       public void propertyChange(PropertyChangeEvent evt) {
         CheckInActivity activity = CheckInServer.getInstance().getActivity(); 
-        nameField.setText(activity.getName());
-        timeStartField.setText(dateFormat.format(activity.getStartDate()));
-        timeEndField.setText(dateFormat.format(activity.getEndDate()));
+        if (activity != null) {
+          nameField.setText(activity.getName());
+          timeStartField.setText(dateFormat.format(activity.getStartDate()));
+          timeEndField.setText(dateFormat.format(activity.getEndDate()));
+        }
       }
     });
     this.add(panel);
@@ -216,12 +229,13 @@ public class MainWindow extends JFrame {
   }
 
   private void loadDatabase() {
-    JOptionPane.showMessageDialog(this, "", "Load... not yet implemented", JOptionPane.INFORMATION_MESSAGE);
+    JOptionPane.showMessageDialog(this, "Load... not yet implemented", "Load... not yet implemented", JOptionPane.INFORMATION_MESSAGE);
     //throw new UnsupportedOperationException("loadDatabase() not yet implemented!");
   }
 
   private void saveDatabase() {
-    JOptionPane.showMessageDialog(this, "", "Save not yet implemented", JOptionPane.INFORMATION_MESSAGE);
+    dbOperations.saveDatabase();
+    //JOptionPane.showMessageDialog(this, "Save not yet implemented", "Save not yet implemented", JOptionPane.INFORMATION_MESSAGE);
     //throw new UnsupportedOperationException("saveDatabase() not yet implemented!");
   }
 
