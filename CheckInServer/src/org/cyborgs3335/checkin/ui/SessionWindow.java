@@ -54,7 +54,7 @@ public class SessionWindow extends JFrame {
 
   private void build() {
     JPanel panel = new JPanel(new BorderLayout(5, 5));
-    panel.add(new JLabel("Check In - Cyborgs 3335", SwingConstants.CENTER), BorderLayout.NORTH);
+    panel.add(new JLabel("Check In - CY-BORGS 3335", SwingConstants.CENTER), BorderLayout.NORTH);
     
     JPanel parameterPanel = new JPanel();
     parameterPanel.setLayout(new BoxLayout(parameterPanel, BoxLayout.Y_AXIS));

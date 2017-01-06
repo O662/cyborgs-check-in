@@ -16,6 +16,8 @@ import java.util.Date;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -24,10 +26,13 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
 import org.cyborgs3335.checkin.CheckInActivity;
+import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.CheckInServer;
 import org.cyborgs3335.checkin.IDatabaseOperations;
 import org.cyborgs3335.checkin.Person;
@@ -43,6 +48,12 @@ public class MainWindow extends JFrame {
   private JLabel checkInStatusField;
   private final IDatabaseOperations dbOperations;
   private final WindowListener windowListener;
+  private JTextArea textArea;
+  private JButton searchButton;
+  private JButton checkInButton;
+  private JButton checkOutButton;
+  private JButton addButton;
+  private JButton clearButton;
 
   public MainWindow() {
     this(null, null);
@@ -63,49 +74,117 @@ public class MainWindow extends JFrame {
 
   private void build() {
     setJMenuBar(createMenuBar());
-    
-    JPanel panel = new JPanel(new BorderLayout(5, 5));
-    panel.add(new JLabel("Check In - Cyborgs 3335", SwingConstants.CENTER), BorderLayout.NORTH);
 
-    JPanel parameterPanel = new JPanel();
-    parameterPanel.setLayout(new BoxLayout(parameterPanel, BoxLayout.Y_AXIS));
+    int hgap = 5;
+    int vgap = 5;
+
+    JPanel panel = new JPanel(new BorderLayout(hgap, vgap));
+    panel.add(new JLabel("Check In - CY-BORGS 3335", SwingConstants.CENTER), BorderLayout.NORTH);
+
+    JPanel logoPanel = new JPanel(new BorderLayout(25, 25));
+    logoPanel.add(new JLabel(getIcon()));
+    panel.add(logoPanel, BorderLayout.WEST);
+
+    //JPanel parameterPanel = new JPanel();
+    //parameterPanel.setLayout(new BoxLayout(parameterPanel, BoxLayout.Y_AXIS));
+    Box parameterPanel = new Box(BoxLayout.Y_AXIS);
     panel.add(parameterPanel, BorderLayout.CENTER);
 
     // Activity
     final JTextField nameField = new JTextField(20);
+    parameterPanel.add(Box.createVerticalStrut(vgap));
     parameterPanel.add(createSingleParameterPanel(new JLabel("Activity Name"), nameField));
+    nameField.setEditable(false);
 
     // Start time
     long currentTimeMillis = System.currentTimeMillis();
     final JTextField timeStartField = new JTextField(dateFormat.format(currentTimeMillis), 20);
+    parameterPanel.add(Box.createVerticalStrut(vgap));
     parameterPanel.add(createSingleParameterPanel(new JLabel("Start Time"), timeStartField));
+    timeStartField.setEditable(false);
 
     // End time
     final JTextField timeEndField = new JTextField(dateFormat.format(currentTimeMillis + 3600L * 1000L), 20);
+    parameterPanel.add(Box.createVerticalStrut(vgap));
     parameterPanel.add(createSingleParameterPanel(new JLabel("End Time"), timeEndField));
+    parameterPanel.add(Box.createVerticalStrut(vgap));
+    parameterPanel.add(Box.createVerticalGlue());
+    timeEndField.setEditable(false);
 
     // Name
     firstNameField = new JTextField(20);
+    parameterPanel.add(Box.createVerticalStrut(vgap));
     parameterPanel.add(createSingleParameterPanel(new JLabel("First Name"), firstNameField));
 
     lastNameField = new JTextField(20);
+    parameterPanel.add(Box.createVerticalStrut(vgap));
     parameterPanel.add(createSingleParameterPanel(new JLabel("Last Name"), lastNameField));
 
+    parameterPanel.add(Box.createVerticalStrut(vgap));
+    parameterPanel.add(Box.createVerticalGlue());
+
     personStatusField = new JLabel("  ");
+    parameterPanel.add(Box.createVerticalStrut(vgap));
     parameterPanel.add(personStatusField);
 
     checkInStatusField = new JLabel("  ");
+    parameterPanel.add(Box.createVerticalStrut(vgap));
     parameterPanel.add(checkInStatusField);
 
+    parameterPanel.add(Box.createVerticalStrut(vgap));
+    parameterPanel.add(Box.createVerticalGlue());
+    parameterPanel.add(Box.createVerticalStrut(vgap));
+
+    // Search button
+    searchButton = new JButton("Search");
+    searchButton.addActionListener(new SearchUserActionListener());
+
+    // Check in button
+    checkInButton = new JButton("Check In");
+    checkInButton.addActionListener(new CheckInUserActionListener());
+    checkInButton.setEnabled(false);
+
+    // Check out button
+    checkOutButton = new JButton("Check Out");
+    checkOutButton.addActionListener(new CheckOutUserActionListener());
+    checkOutButton.setEnabled(false);
+
     // Add button
-    JButton addButton = new JButton("Add");
+    addButton = new JButton("Add New Person");
     addButton.addActionListener(new AddUserActionListener());
+    addButton.setEnabled(false);
+
+    // Clear button
+    clearButton = new JButton("New Search");
+    clearButton.addActionListener(new ClearUserActionListener());
+    clearButton.setEnabled(false);
 
     JPanel buttonPanel = new JPanel();//new BorderLayout(5, 5));
     buttonPanel.add(Box.createHorizontalGlue());//, BorderLayout.WEST);
+    buttonPanel.add(searchButton);//, BorderLayout.CENTER);
+    buttonPanel.add(Box.createHorizontalGlue());//, BorderLayout.WEST);
+    buttonPanel.add(checkInButton);//, BorderLayout.CENTER);
+    buttonPanel.add(Box.createHorizontalGlue());//, BorderLayout.WEST);
+    buttonPanel.add(checkOutButton);//, BorderLayout.CENTER);
+    buttonPanel.add(Box.createHorizontalGlue());//, BorderLayout.WEST);
     buttonPanel.add(addButton);//, BorderLayout.CENTER);
     buttonPanel.add(Box.createHorizontalGlue());//, BorderLayout.EAST);
-    panel.add(buttonPanel, BorderLayout.SOUTH);
+    buttonPanel.add(clearButton);
+    buttonPanel.add(Box.createHorizontalGlue());//, BorderLayout.EAST);
+    //panel.add(buttonPanel, BorderLayout.SOUTH);
+
+    JPanel textPanel = new JPanel();
+    textArea = new JTextArea(10, 80);
+    JScrollPane pane = new JScrollPane(textArea);
+    textPanel.add(pane);
+
+    Box bottomBox = new Box(BoxLayout.Y_AXIS);
+    bottomBox.add(Box.createVerticalStrut(vgap));
+    bottomBox.add(buttonPanel);
+    bottomBox.add(Box.createVerticalStrut(vgap));
+    bottomBox.add(textPanel);
+    bottomBox.add(Box.createVerticalStrut(vgap));
+    panel.add(bottomBox, BorderLayout.SOUTH);
 
     // Set initial activity
     CheckInActivity activity = CheckInServer.getInstance().getActivity();
@@ -146,6 +225,7 @@ public class MainWindow extends JFrame {
         loadDatabase();
       }
     });
+    loadMenuItem.setEnabled(false);
     fileMenu.add(loadMenuItem);
     JMenuItem saveMenuItem = new JMenuItem("Save");
     saveMenuItem.setMnemonic(KeyEvent.VK_S);
@@ -186,16 +266,100 @@ public class MainWindow extends JFrame {
   }
 
   private Box createSingleParameterPanel(JLabel label, JTextField field) {
+    int hgap = 5;
     field.setMaximumSize(field.getPreferredSize());
     Box box = new Box(BoxLayout.X_AXIS);
-    box.add(Box.createHorizontalStrut(5));
+    box.add(Box.createHorizontalStrut(hgap));
     box.add(label);
-    box.add(Box.createHorizontalStrut(5));
+    box.add(Box.createHorizontalStrut(hgap));
     box.add(Box.createHorizontalGlue());
-    box.add(Box.createHorizontalStrut(5));
+    box.add(Box.createHorizontalStrut(hgap));
     box.add(field);
-    box.add(Box.createHorizontalStrut(5));
+    box.add(Box.createHorizontalStrut(hgap));
     return box;
+  }
+
+  private class SearchUserActionListener implements ActionListener {
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+      String firstName = firstNameField.getText();
+      String lastName = lastNameField.getText();
+      CheckInServer server = CheckInServer.getInstance();
+      Person person = server.findPerson(firstName, lastName);
+      String personText = null;
+      if (person == null) {
+//        person = server.addUser(firstName, lastName);
+//        personText = "Added new person: " + firstName + " " + lastName + " id " + person.getId();
+        personText = "New person: " + firstName + " " + lastName;
+        personStatusField.setText(personText);
+        addButton.setEnabled(true);
+        checkInButton.setEnabled(false);
+        checkOutButton.setEnabled(false);
+        clearButton.setEnabled(true);
+        return;
+      } else {
+        personText = "Found existing person: " + firstName + " " + lastName + " id " + person.getId();
+      }
+      System.out.println(personText);
+      textArea.append(personText + "\n");
+      personStatusField.setText(personText);
+      addButton.setEnabled(false);
+      CheckInEvent.Status status = server.getAttendanceRecord(person.getId()).getLastEvent().getStatus();
+      boolean checkInState = (status.equals(CheckInEvent.Status.CheckedIn));
+      checkInButton.setEnabled(!checkInState);
+      checkOutButton.setEnabled(checkInState);
+      clearButton.setEnabled(true);
+//      try {
+//        boolean checkIn = server.accept(person.getId());
+//        String status = checkIn ? "Checked in" : "Checked out";
+//        String text = status + " " + firstName + " " + lastName + " at " + dateFormat.format(new Date());
+//        System.out.println(text);
+//        checkInStatusField.setText(text);
+//      } catch (UnknownUserException e1) {
+//        // TODO Auto-generated catch block
+//        e1.printStackTrace();
+//      }
+    }
+  }
+
+  private class CheckInUserActionListener implements ActionListener {
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+      String firstName = firstNameField.getText();
+      String lastName = lastNameField.getText();
+      CheckInServer server = CheckInServer.getInstance();
+      Person person = server.findPerson(firstName, lastName);
+      String personText = null;
+      if (person == null) {
+//        person = server.addUser(firstName, lastName);
+//        personText = "Added new person: " + firstName + " " + lastName + " id " + person.getId();
+        personText = "New person: " + firstName + " " + lastName;
+        personStatusField.setText(personText);
+        addButton.setEnabled(true);
+        checkInButton.setEnabled(false);
+        checkOutButton.setEnabled(false);
+        return;
+      } else {
+        personText = "Found existing person: " + firstName + " " + lastName + " id " + person.getId();
+      }
+      System.out.println(personText);
+      textArea.append(personText + "\n");
+      personStatusField.setText(personText);
+      addButton.setEnabled(false);
+      CheckInEvent.Status status = server.getAttendanceRecord(person.getId()).getLastEvent().getStatus();
+      boolean checkInState = (status.equals(CheckInEvent.Status.CheckedIn));
+      checkInButton.setEnabled(!checkInState);
+      checkOutButton.setEnabled(checkInState);
+    }
+  }
+
+  private class CheckOutUserActionListener implements ActionListener {
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+    }
   }
 
   private class AddUserActionListener implements ActionListener {
@@ -226,6 +390,26 @@ public class MainWindow extends JFrame {
         e1.printStackTrace();
       }
     }
+  }
+
+  private class ClearUserActionListener implements ActionListener {
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+      firstNameField.setText("");
+      lastNameField.setText("");
+      personStatusField.setText("  ");
+      checkInStatusField.setText("  ");
+      searchButton.setEnabled(true);
+      addButton.setEnabled(false);
+      checkInButton.setEnabled(false);
+      checkOutButton.setEnabled(false);
+    }
+  }
+
+  protected Icon getIcon() {
+    return new ImageIcon(getClass().getClassLoader()
+        .getResource("resources/images/Cy-borgs-logo.png"), "Cy-borgs logo");
   }
 
   private void loadDatabase() {
