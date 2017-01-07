@@ -5,4 +5,5 @@ public interface IDatabaseOperations {
   public void loadDatabase();
   public void saveDatabase();
   public void saveDatabase(String newPath);
+  public void logDatabase(String message);
 }

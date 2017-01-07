@@ -34,6 +34,8 @@ public class CheckInServer {
 
   public static final String ACTIVITY_PROPERTY = "ACTIVITY_PROPERTY";
 
+  public static final String DB_ATTENDANCE_RECORDS = "attendance-records.db";
+
   private final Map<Long, AttendanceRecord> map = Collections.synchronizedMap(new HashMap<Long, AttendanceRecord>());
 
   private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
@@ -203,7 +205,7 @@ public class CheckInServer {
     if (!loadDir.isDirectory()) {
       throw new IOException("Path " + path + " must be a directory!");
     }
-    loadAttendanceRecords(path + File.separator + "attendance-records.db");
+    loadAttendanceRecords(path + File.separator + DB_ATTENDANCE_RECORDS);
   }
 
   private void loadAttendanceRecords(String path) {
@@ -252,7 +254,7 @@ public class CheckInServer {
     if (!dumpDir.isDirectory()) {
       throw new IOException("Path " + path + " must be a directory!");
     }
-    dumpAttendanceRecords(path + File.separator + "attendance-records.db");
+    dumpAttendanceRecords(path + File.separator + DB_ATTENDANCE_RECORDS);
   }
 
   private void dumpAttendanceRecords(String path) {

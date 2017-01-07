@@ -1,6 +1,7 @@
 package org.cyborgs3335.checkin.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -30,11 +31,15 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.text.BadLocationException;
 
 import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.CheckInServer;
 import org.cyborgs3335.checkin.IDatabaseOperations;
+import org.cyborgs3335.checkin.MainApp;
 import org.cyborgs3335.checkin.Person;
 import org.cyborgs3335.checkin.UnknownUserException;
 
@@ -204,8 +209,35 @@ public class MainWindow extends JFrame {
     panel.add(centerPanel, BorderLayout.CENTER);
 
     JPanel textPanel = new JPanel();
-    textArea = new JTextArea(10, 80);
+    textArea = new JTextArea();//10, 80);
+    textArea.setEditable(false);
+    textArea.getDocument().addDocumentListener(new DocumentListener() {
+
+      @Override
+      public void insertUpdate(DocumentEvent e) {
+        try {
+          String newText = e.getDocument().getText(e.getOffset(), e.getLength());
+          dbOperations.logDatabase(newText);
+          //System.out.println(MainApp.getAndCreateCheckInAppDir());
+        } catch (BadLocationException e1) {
+          // TODO Auto-generated catch block
+          e1.printStackTrace();
+        }
+        //System.out.println("insert");
+      }
+
+      @Override
+      public void removeUpdate(DocumentEvent e) {
+        //System.out.println("remove");
+      }
+
+      @Override
+      public void changedUpdate(DocumentEvent e) {
+        //System.out.println("change");
+      }
+    });
     JScrollPane pane = new JScrollPane(textArea);
+    pane.setPreferredSize(new Dimension(880, 150));
     textPanel.add(pane);
 
     Box bottomBox = new Box(BoxLayout.Y_AXIS);
