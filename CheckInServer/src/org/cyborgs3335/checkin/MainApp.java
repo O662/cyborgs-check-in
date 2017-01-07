@@ -164,6 +164,7 @@ public class MainApp implements IDatabaseOperations {
   public void saveDatabase(String newPath) {
     CheckInServer server = CheckInServer.getInstance();
     server.print();
+    logDatabase(server.printToString());
     try {
       server.dump(newPath);
       path = newPath;
@@ -259,6 +260,7 @@ public class MainApp implements IDatabaseOperations {
     }
 
     server.print();
+    app.logDatabase(server.printToString());
     app.scanIdsUi();
     scanIdsSerial(portName, true);
     scanIdsTerminal();
