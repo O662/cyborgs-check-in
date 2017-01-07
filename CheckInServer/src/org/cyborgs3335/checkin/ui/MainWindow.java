@@ -289,8 +289,6 @@ public class MainWindow extends JFrame {
       Person person = server.findPerson(firstName, lastName);
       String personText = null;
       if (person == null) {
-//        person = server.addUser(firstName, lastName);
-//        personText = "Added new person: " + firstName + " " + lastName + " id " + person.getId();
         personText = "New person: " + firstName + " " + lastName;
         personStatusField.setText(personText);
         addButton.setEnabled(true);
@@ -310,16 +308,6 @@ public class MainWindow extends JFrame {
       checkInButton.setEnabled(!checkInState);
       checkOutButton.setEnabled(checkInState);
       clearButton.setEnabled(true);
-//      try {
-//        boolean checkIn = server.accept(person.getId());
-//        String status = checkIn ? "Checked in" : "Checked out";
-//        String text = status + " " + firstName + " " + lastName + " at " + dateFormat.format(new Date());
-//        System.out.println(text);
-//        checkInStatusField.setText(text);
-//      } catch (UnknownUserException e1) {
-//        // TODO Auto-generated catch block
-//        e1.printStackTrace();
-//      }
     }
   }
 
@@ -333,13 +321,13 @@ public class MainWindow extends JFrame {
       Person person = server.findPerson(firstName, lastName);
       String personText = null;
       if (person == null) {
-//        person = server.addUser(firstName, lastName);
-//        personText = "Added new person: " + firstName + " " + lastName + " id " + person.getId();
         personText = "New person: " + firstName + " " + lastName;
         personStatusField.setText(personText);
+        checkInStatusField.setText(firstName + " " + lastName + " does not exist in database. Add?");
         addButton.setEnabled(true);
         checkInButton.setEnabled(false);
         checkOutButton.setEnabled(false);
+        clearButton.setEnabled(true);
         return;
       } else {
         personText = "Found existing person: " + firstName + " " + lastName + " id " + person.getId();
@@ -348,10 +336,30 @@ public class MainWindow extends JFrame {
       textArea.append(personText + "\n");
       personStatusField.setText(personText);
       addButton.setEnabled(false);
-      CheckInEvent.Status status = server.getAttendanceRecord(person.getId()).getLastEvent().getStatus();
-      boolean checkInState = (status.equals(CheckInEvent.Status.CheckedIn));
-      checkInButton.setEnabled(!checkInState);
-      checkOutButton.setEnabled(checkInState);
+      clearButton.setEnabled(true);
+      try {
+        boolean checkIn = server.accept(person.getId());
+        String status = checkIn ? "Checked in" : "Checked out";
+        String text = status + " " + firstName + " " + lastName + " at " + dateFormat.format(new Date());
+        System.out.println(text);
+        textArea.append(text + "\n");
+        checkInStatusField.setText(text);
+        if (!checkIn) {
+          String statusText = "Expected to check in " + firstName + " " + lastName
+              + ", but was checked out instead!";
+          System.out.println(statusText);
+          textArea.append(statusText);
+          checkInButton.setEnabled(true);
+          checkOutButton.setEnabled(false);
+        } else {
+          checkInButton.setEnabled(false);
+          checkOutButton.setEnabled(true);
+        }
+      } catch (UnknownUserException e1) {
+        // TODO Auto-generated catch block
+        textArea.append(e1.getMessage());
+        e1.printStackTrace();
+      }
     }
   }
 
@@ -359,6 +367,51 @@ public class MainWindow extends JFrame {
 
     @Override
     public void actionPerformed(ActionEvent e) {
+      String firstName = firstNameField.getText();
+      String lastName = lastNameField.getText();
+      CheckInServer server = CheckInServer.getInstance();
+      Person person = server.findPerson(firstName, lastName);
+      String personText = null;
+      if (person == null) {
+        personText = "New person: " + firstName + " " + lastName;
+        personStatusField.setText(personText);
+        checkInStatusField.setText(firstName + " " + lastName + " does not exist in database. Add?");
+        addButton.setEnabled(true);
+        checkInButton.setEnabled(false);
+        checkOutButton.setEnabled(false);
+        clearButton.setEnabled(true);
+        return;
+      } else {
+        personText = "Found existing person: " + firstName + " " + lastName + " id " + person.getId();
+      }
+      System.out.println(personText);
+      textArea.append(personText + "\n");
+      personStatusField.setText(personText);
+      addButton.setEnabled(false);
+      clearButton.setEnabled(true);
+      try {
+        boolean checkIn = server.accept(person.getId());
+        String status = checkIn ? "Checked in" : "Checked out";
+        String text = status + " " + firstName + " " + lastName + " at " + dateFormat.format(new Date());
+        System.out.println(text);
+        textArea.append(text + "\n");
+        checkInStatusField.setText(text);
+        if (checkIn) {
+          String statusText = "Expected to check out " + firstName + " " + lastName
+              + ", but was checked in instead!";
+          System.out.println(statusText);
+          textArea.append(statusText);
+          checkInButton.setEnabled(false);
+          checkOutButton.setEnabled(true);
+        } else {
+          checkInButton.setEnabled(true);
+          checkOutButton.setEnabled(false);
+        }
+      } catch (UnknownUserException e1) {
+        // TODO Auto-generated catch block
+        textArea.append(e1.getMessage());
+        e1.printStackTrace();
+      }
     }
   }
 
@@ -374,6 +427,11 @@ public class MainWindow extends JFrame {
       if (person == null) {
         person = server.addUser(firstName, lastName);
         personText = "Added new person: " + firstName + " " + lastName + " id " + person.getId();
+        textArea.append(personText + "\n");
+        addButton.setEnabled(false);
+        searchButton.setEnabled(true);
+        checkInButton.setEnabled(false);
+        checkOutButton.setEnabled(false);
       } else {
         personText = "Found existing person: " + firstName + " " + lastName + " id " + person.getId();
       }
@@ -384,9 +442,14 @@ public class MainWindow extends JFrame {
         String status = checkIn ? "Checked in" : "Checked out";
         String text = status + " " + firstName + " " + lastName + " at " + dateFormat.format(new Date());
         System.out.println(text);
+        textArea.append(text + "\n");
         checkInStatusField.setText(text);
+        checkInButton.setEnabled(!checkIn);
+        checkOutButton.setEnabled(checkIn);
+        clearButton.setEnabled(true);
       } catch (UnknownUserException e1) {
         // TODO Auto-generated catch block
+        textArea.append(e1.getMessage());
         e1.printStackTrace();
       }
     }
