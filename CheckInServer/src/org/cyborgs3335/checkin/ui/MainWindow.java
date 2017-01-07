@@ -77,34 +77,39 @@ public class MainWindow extends JFrame {
 
     int hgap = 5;
     int vgap = 5;
+    int textFieldLength = 15;
 
     JPanel panel = new JPanel(new BorderLayout(hgap, vgap));
-    panel.add(new JLabel("Check In - CY-BORGS 3335", SwingConstants.CENTER), BorderLayout.NORTH);
+    //panel.add(new JLabel("Check In - CY-BORGS 3335", SwingConstants.CENTER), BorderLayout.NORTH);
 
     JPanel logoPanel = new JPanel(new BorderLayout(25, 25));
-    logoPanel.add(new JLabel(getIcon()));
+    logoPanel.add(Box.createHorizontalStrut(hgap), BorderLayout.EAST);
+    logoPanel.add(Box.createHorizontalStrut(hgap), BorderLayout.WEST);
+    logoPanel.add(Box.createVerticalStrut(hgap), BorderLayout.NORTH);
+    logoPanel.add(Box.createVerticalStrut(hgap), BorderLayout.SOUTH);
+    logoPanel.add(new JLabel(getIcon()), BorderLayout.CENTER);
     panel.add(logoPanel, BorderLayout.WEST);
 
     //JPanel parameterPanel = new JPanel();
     //parameterPanel.setLayout(new BoxLayout(parameterPanel, BoxLayout.Y_AXIS));
     Box parameterPanel = new Box(BoxLayout.Y_AXIS);
-    panel.add(parameterPanel, BorderLayout.CENTER);
+//    panel.add(parameterPanel, BorderLayout.CENTER);
 
     // Activity
-    final JTextField nameField = new JTextField(20);
+    final JTextField nameField = new JTextField(textFieldLength);
     parameterPanel.add(Box.createVerticalStrut(vgap));
     parameterPanel.add(createSingleParameterPanel(new JLabel("Activity Name"), nameField));
     nameField.setEditable(false);
 
     // Start time
     long currentTimeMillis = System.currentTimeMillis();
-    final JTextField timeStartField = new JTextField(dateFormat.format(currentTimeMillis), 20);
+    final JTextField timeStartField = new JTextField(dateFormat.format(currentTimeMillis), textFieldLength);
     parameterPanel.add(Box.createVerticalStrut(vgap));
     parameterPanel.add(createSingleParameterPanel(new JLabel("Start Time"), timeStartField));
     timeStartField.setEditable(false);
 
     // End time
-    final JTextField timeEndField = new JTextField(dateFormat.format(currentTimeMillis + 3600L * 1000L), 20);
+    final JTextField timeEndField = new JTextField(dateFormat.format(currentTimeMillis + 3600L * 1000L), textFieldLength);
     parameterPanel.add(Box.createVerticalStrut(vgap));
     parameterPanel.add(createSingleParameterPanel(new JLabel("End Time"), timeEndField));
     parameterPanel.add(Box.createVerticalStrut(vgap));
@@ -112,11 +117,11 @@ public class MainWindow extends JFrame {
     timeEndField.setEditable(false);
 
     // Name
-    firstNameField = new JTextField(20);
+    firstNameField = new JTextField(textFieldLength);
     parameterPanel.add(Box.createVerticalStrut(vgap));
     parameterPanel.add(createSingleParameterPanel(new JLabel("First Name"), firstNameField));
 
-    lastNameField = new JTextField(20);
+    lastNameField = new JTextField(textFieldLength);
     parameterPanel.add(Box.createVerticalStrut(vgap));
     parameterPanel.add(createSingleParameterPanel(new JLabel("Last Name"), lastNameField));
 
@@ -134,6 +139,15 @@ public class MainWindow extends JFrame {
     parameterPanel.add(Box.createVerticalStrut(vgap));
     parameterPanel.add(Box.createVerticalGlue());
     parameterPanel.add(Box.createVerticalStrut(vgap));
+
+    Box parameterBox = new Box(BoxLayout.X_AXIS);
+    parameterBox.add(Box.createHorizontalStrut(hgap));
+    parameterBox.add(Box.createHorizontalGlue());
+    parameterBox.add(Box.createHorizontalStrut(hgap));
+    parameterBox.add(parameterPanel);
+    parameterBox.add(Box.createHorizontalStrut(hgap));
+    parameterBox.add(Box.createHorizontalGlue());
+    parameterBox.add(Box.createHorizontalStrut(hgap));
 
     // Search button
     searchButton = new JButton("Search");
@@ -173,14 +187,30 @@ public class MainWindow extends JFrame {
     buttonPanel.add(Box.createHorizontalGlue());//, BorderLayout.EAST);
     //panel.add(buttonPanel, BorderLayout.SOUTH);
 
+    JPanel titlePanel = new JPanel();
+    titlePanel.add(new JLabel("Check In - CY-BORGS 3335"));//, SwingConstants.CENTER));
+
+    Box centerPanel = new Box(BoxLayout.Y_AXIS);
+    centerPanel.add(Box.createVerticalStrut(vgap));
+    centerPanel.add(titlePanel);//, SwingConstants.CENTER));
+    centerPanel.add(Box.createVerticalStrut(vgap));
+    //centerPanel.add(parameterPanel);
+    centerPanel.add(parameterBox);
+    centerPanel.add(Box.createVerticalStrut(vgap));
+    centerPanel.add(Box.createVerticalGlue());
+    centerPanel.add(Box.createVerticalStrut(vgap));
+    centerPanel.add(buttonPanel);
+    centerPanel.add(Box.createVerticalStrut(vgap));
+    panel.add(centerPanel, BorderLayout.CENTER);
+
     JPanel textPanel = new JPanel();
     textArea = new JTextArea(10, 80);
     JScrollPane pane = new JScrollPane(textArea);
     textPanel.add(pane);
 
     Box bottomBox = new Box(BoxLayout.Y_AXIS);
-    bottomBox.add(Box.createVerticalStrut(vgap));
-    bottomBox.add(buttonPanel);
+//    bottomBox.add(Box.createVerticalStrut(vgap));
+//    bottomBox.add(buttonPanel);
     bottomBox.add(Box.createVerticalStrut(vgap));
     bottomBox.add(textPanel);
     bottomBox.add(Box.createVerticalStrut(vgap));
@@ -318,7 +348,7 @@ public class MainWindow extends JFrame {
           lastName = person.getLastName();
           lastNameField.setText(lastName);
         }
-        personText = "Found existing person: " + firstName + " " + lastName + " id " + person.getId();
+        personText = "Found existing person: " + firstName + " " + lastName + " ID " + person.getId();
       }
       //System.out.println(personText);
       //textArea.append(personText + "\n");
@@ -354,10 +384,10 @@ public class MainWindow extends JFrame {
         clearButton.setEnabled(true);
         return;
       } else {
-        personText = "Found existing person: " + firstName + " " + lastName + " id " + person.getId();
+        personText = "Found existing person: " + firstName + " " + lastName + " ID " + person.getId();
       }
-      System.out.println(personText);
-      textArea.append(personText + "\n");
+      //System.out.println(personText);
+      //textArea.append(personText + "\n");
       personStatusField.setText(personText);
       addButton.setEnabled(false);
       clearButton.setEnabled(true);
@@ -370,6 +400,7 @@ public class MainWindow extends JFrame {
         System.out.println(text);
         textArea.append(text + "\n");
         checkInStatusField.setText(text);
+        searchButton.setEnabled(false);
         if (!checkIn) {
           String statusText = "Expected to check in " + firstName + " " + lastName
               + ", but was checked out instead!";
@@ -408,10 +439,10 @@ public class MainWindow extends JFrame {
         clearButton.setEnabled(true);
         return;
       } else {
-        personText = "Found existing person: " + firstName + " " + lastName + " id " + person.getId();
+        personText = "Found existing person: " + firstName + " " + lastName + " ID " + person.getId();
       }
-      System.out.println(personText);
-      textArea.append(personText + "\n");
+      //System.out.println(personText);
+      //textArea.append(personText + "\n");
       personStatusField.setText(personText);
       addButton.setEnabled(false);
       clearButton.setEnabled(true);
@@ -424,6 +455,7 @@ public class MainWindow extends JFrame {
         System.out.println(text);
         textArea.append(text + "\n");
         checkInStatusField.setText(text);
+        searchButton.setEnabled(false);
         if (checkIn) {
           String statusText = "Expected to check out " + firstName + " " + lastName
               + ", but was checked in instead!";
@@ -454,15 +486,15 @@ public class MainWindow extends JFrame {
       String personText = null;
       if (person == null) {
         person = server.addUser(firstName, lastName);
-        personText = "Added new person: " + firstName + " " + lastName + " id " + person.getId();
+        personText = "Added new person: " + firstName + " " + lastName + " ID " + person.getId();
         textArea.append(personText + "\n");
         addButton.setEnabled(false);
-        searchButton.setEnabled(true);
         checkInButton.setEnabled(false);
         checkOutButton.setEnabled(false);
       } else {
-        personText = "Found existing person: " + firstName + " " + lastName + " id " + person.getId();
+        personText = "Found existing person: " + firstName + " " + lastName + " ID " + person.getId();
       }
+      searchButton.setEnabled(false);
       System.out.println(personText);
       personStatusField.setText(personText);
       firstNameField.setEditable(false);
@@ -503,8 +535,11 @@ public class MainWindow extends JFrame {
   }
 
   protected Icon getIcon() {
+    //String iconName = "resources/images/Cy-borgs-logo-402x402.png";
+    String iconName = "resources/images/Cy-borgs-logo-301x301.png";
+    //String iconName = "resources/images/Cy-borgs-logo-201x201.png";
     return new ImageIcon(getClass().getClassLoader()
-        .getResource("resources/images/Cy-borgs-logo.png"), "Cy-borgs logo");
+        .getResource(iconName), "Cy-borgs logo");
   }
 
   private void loadDatabase() {
