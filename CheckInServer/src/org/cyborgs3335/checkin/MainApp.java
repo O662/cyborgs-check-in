@@ -232,7 +232,9 @@ public class MainApp implements IDatabaseOperations {
     final String portName = (args.length == 1) ? args[0] : "/dev/ttyACM0";
 
     CheckInServer server = CheckInServer.getInstance();
-    String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-main-app-test.dump";
+    //String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-main-app-test.dump";
+    //String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-new-user-test.dump";
+    String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-2017-kickoff.dump";
     //final String path = "/tmp/check-in-server-new-user-test.dump";
     File dir = new File(path);
     if (dir.exists()) {
