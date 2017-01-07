@@ -306,4 +306,25 @@ public class CheckInServer {
       }
     }
   }
+
+  /**
+   * Print the last check-in event for each attendance record.
+   */
+  public String printToString() {
+    String buffer = "";
+    DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
+    if (activity != null) {
+      buffer += activity.printToString(dateFormat) + "\n";
+    }
+    synchronized (map) {
+      for (Long id : map.keySet()) {
+        AttendanceRecord record = map.get(id);
+        ArrayList<CheckInEvent> list = record.getEventList();
+        CheckInEvent event = list.get(list.size()-1);
+        buffer += "id " + id + " name " + record.getPerson() + " check-in "
+            + event.getStatus() + " " + dateFormat.format(new Date(event.getTimeStamp())) + "\n";
+      }
+    }
+    return buffer;
+  }
 }

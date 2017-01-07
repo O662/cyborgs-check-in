@@ -324,6 +324,24 @@ public class MainWindow extends JFrame {
     editMenu.add(activityMenuItem);
     menubar.add(editMenu);
 
+    // View menu
+    final JMenu viewMenu = new JMenu("View");
+    JMenuItem viewRecordsMenuItem = new JMenuItem("View records...");
+    viewRecordsMenuItem.addActionListener(new ActionListener() {
+
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        JTextArea recordArea = new JTextArea();
+        JScrollPane scrollPane = new JScrollPane(recordArea);
+        scrollPane.setPreferredSize(new Dimension(880, 450));
+        String buffer = CheckInServer.getInstance().printToString();
+        recordArea.append(buffer);
+        JOptionPane.showMessageDialog(viewMenu, scrollPane, "Attendance Records", JOptionPane.PLAIN_MESSAGE);
+      }
+    });
+    viewMenu.add(viewRecordsMenuItem);
+    menubar.add(viewMenu);
+
     return menubar;
   }
 
