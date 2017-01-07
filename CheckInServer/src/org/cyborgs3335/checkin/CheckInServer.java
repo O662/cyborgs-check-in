@@ -111,7 +111,8 @@ public class CheckInServer {
     Person person = null;
     for (Long id : map.keySet()) {
       Person p = map.get(id).getPerson();
-      if (p.getFirstName().equals(firstName) && p.getLastName().equals(lastName)) {
+      //if (p.getFirstName().equals(firstName) && p.getLastName().equals(lastName)) {
+      if (p.getFirstName().equalsIgnoreCase(firstName) && p.getLastName().equalsIgnoreCase(lastName)) {
         person = p;
         break;
       }

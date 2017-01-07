@@ -155,7 +155,7 @@ public class MainWindow extends JFrame {
     addButton.setEnabled(false);
 
     // Clear button
-    clearButton = new JButton("New Search");
+    clearButton = new JButton("Done");
     clearButton.addActionListener(new ClearUserActionListener());
     clearButton.setEnabled(false);
 
@@ -284,7 +284,22 @@ public class MainWindow extends JFrame {
     @Override
     public void actionPerformed(ActionEvent e) {
       String firstName = firstNameField.getText();
+      String newFirstName = firstName.trim();
+      if (!firstName.equals(newFirstName)) {
+        firstNameField.setText(newFirstName);
+        firstName = newFirstName;
+      }
       String lastName = lastNameField.getText();
+      String newLastName = lastName.trim();
+      if (!lastName.equals(newLastName)) {
+        lastNameField.setText(newLastName);
+        lastName = newLastName;
+      }
+      if (firstName.isEmpty() || lastName.isEmpty()) {
+        String personText = "Both First Name and Last Name must be populated.";
+        personStatusField.setText(personText);
+        return;
+      }
       CheckInServer server = CheckInServer.getInstance();
       Person person = server.findPerson(firstName, lastName);
       String personText = null;
@@ -297,14 +312,23 @@ public class MainWindow extends JFrame {
         clearButton.setEnabled(true);
         return;
       } else {
+        if (!firstName.equals(person.getFirstName()) || !lastName.equals(person.getLastName())) {
+          firstName = person.getFirstName();
+          firstNameField.setText(firstName);
+          lastName = person.getLastName();
+          lastNameField.setText(lastName);
+        }
         personText = "Found existing person: " + firstName + " " + lastName + " id " + person.getId();
       }
-      System.out.println(personText);
-      textArea.append(personText + "\n");
+      //System.out.println(personText);
+      //textArea.append(personText + "\n");
       personStatusField.setText(personText);
       addButton.setEnabled(false);
-      CheckInEvent.Status status = server.getAttendanceRecord(person.getId()).getLastEvent().getStatus();
+      CheckInEvent lastEvent = server.getAttendanceRecord(person.getId()).getLastEvent();
+      CheckInEvent.Status status = lastEvent.getStatus();
       boolean checkInState = (status.equals(CheckInEvent.Status.CheckedIn));
+      String checkInString = checkInState ? "Checked in" : "Checked out";
+      checkInStatusField.setText("Status: " + checkInString + " at " + dateFormat.format(lastEvent.getTimeStamp()));
       checkInButton.setEnabled(!checkInState);
       checkOutButton.setEnabled(checkInState);
       clearButton.setEnabled(true);
@@ -337,6 +361,8 @@ public class MainWindow extends JFrame {
       personStatusField.setText(personText);
       addButton.setEnabled(false);
       clearButton.setEnabled(true);
+      firstNameField.setEditable(false);
+      lastNameField.setEditable(false);
       try {
         boolean checkIn = server.accept(person.getId());
         String status = checkIn ? "Checked in" : "Checked out";
@@ -389,6 +415,8 @@ public class MainWindow extends JFrame {
       personStatusField.setText(personText);
       addButton.setEnabled(false);
       clearButton.setEnabled(true);
+      firstNameField.setEditable(false);
+      lastNameField.setEditable(false);
       try {
         boolean checkIn = server.accept(person.getId());
         String status = checkIn ? "Checked in" : "Checked out";
@@ -437,6 +465,8 @@ public class MainWindow extends JFrame {
       }
       System.out.println(personText);
       personStatusField.setText(personText);
+      firstNameField.setEditable(false);
+      lastNameField.setEditable(false);
       try {
         boolean checkIn = server.accept(person.getId());
         String status = checkIn ? "Checked in" : "Checked out";
@@ -459,6 +489,8 @@ public class MainWindow extends JFrame {
 
     @Override
     public void actionPerformed(ActionEvent e) {
+      firstNameField.setEditable(true);
+      lastNameField.setEditable(true);
       firstNameField.setText("");
       lastNameField.setText("");
       personStatusField.setText("  ");

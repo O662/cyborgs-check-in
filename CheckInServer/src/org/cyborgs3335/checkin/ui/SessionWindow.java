@@ -196,6 +196,11 @@ public class SessionWindow extends JFrame {
     @Override
     public void actionPerformed(ActionEvent e) {
       String name = nameField.getText();
+      name = name.trim();
+      if (name.isEmpty()) {
+        JOptionPane.showMessageDialog(parent, "Activity Name must not be blank", "Invalid Activity Name", JOptionPane.ERROR_MESSAGE);
+        return;
+      }
       String timeStartString = timeStartField.getText();
       String timeEndString = timeEndField.getText();
       try {
