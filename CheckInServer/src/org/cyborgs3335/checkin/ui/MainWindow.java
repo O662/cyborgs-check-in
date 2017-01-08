@@ -322,6 +322,15 @@ public class MainWindow extends JFrame {
       }
     });
     editMenu.add(activityMenuItem);
+    JMenuItem fullCheckOutMenuItem = new JMenuItem("Full check out...");
+    fullCheckOutMenuItem.addActionListener(new ActionListener() {
+
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        CheckInServer.getInstance().checkOutAll();
+      }
+    });
+    editMenu.add(fullCheckOutMenuItem);
     menubar.add(editMenu);
 
     // View menu

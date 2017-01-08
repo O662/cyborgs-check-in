@@ -288,6 +288,22 @@ public class CheckInServer {
     return map.get(id);
   }
 
+  public void checkOutAll() {
+    DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
+    synchronized (map) {
+      for (Long id : map.keySet()) {
+        AttendanceRecord record = map.get(id);
+        CheckInEvent event = record.getLastEvent();
+        if (event.getStatus().equals(CheckInEvent.Status.CheckedIn)) {
+          map.get(id).getEventList().add(new CheckInEvent(CheckInEvent.Status.CheckedOut,
+              System.currentTimeMillis()));
+        }
+        System.out.println("id " + id + " name " + record.getPerson() + " check out "
+            + dateFormat.format(new Date(event.getTimeStamp())));
+      }
+    }
+  }
+
   /**
    * Print the last check-in event for each attendance record.
    */
