@@ -47,7 +47,7 @@ public class MainApp implements IDatabaseOperations {
    * @param daemonThread if true, make spawned task thread a daemon thread
    */
   public static void scanIdsSerial(final String portName, boolean daemonThread) {
-    SerialComm.printSerialPortNames();
+    //SerialComm.printSerialPortNames();
     Thread t = new Thread(new Runnable() {
 
       @Override
@@ -277,7 +277,7 @@ public class MainApp implements IDatabaseOperations {
     server.print();
     app.logDatabase(server.printToString());
     app.scanIdsUi();
-    scanIdsSerial(portName, true);
+//    scanIdsSerial(portName, true);
     scanIdsTerminal();
     app.exitApp();
     //server.print();
