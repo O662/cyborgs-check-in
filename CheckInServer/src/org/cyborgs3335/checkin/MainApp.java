@@ -9,6 +9,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.logging.FileHandler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import javax.swing.JOptionPane;
 
@@ -23,6 +26,8 @@ import jssc.SerialPortException;
  *
  */
 public class MainApp implements IDatabaseOperations {
+
+  private static final Logger LOG = Logger.getLogger(MainApp.class.getPackage().getName());
 
   public static final String CHECK_IN_APP_DIR = "CyborgsCheckIn";
 
@@ -168,7 +173,8 @@ public class MainApp implements IDatabaseOperations {
     try {
       server.dump(newPath);
       path = newPath;
-      System.out.println("Save complete.");
+      //System.out.println("Save complete.");
+      LOG.info("Save complete.");
     } catch (IOException e) {
       JOptionPane.showMessageDialog(parent, e.getMessage(), "Save Error", JOptionPane.ERROR_MESSAGE);
       e.printStackTrace();
@@ -189,13 +195,15 @@ public class MainApp implements IDatabaseOperations {
       return;
     }
     try {
-      logWriter.write(dateFormat.format(System.currentTimeMillis()) + ": " + message);
+      String buf = dateFormat.format(System.currentTimeMillis()) + ": " + message;
+      logWriter.write(buf);
+      LOG.info(buf);
       logWriter.flush();
     } catch (IOException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-  };
+  }
 
   private void exitApp() {
     saveDatabase();
@@ -232,6 +240,11 @@ public class MainApp implements IDatabaseOperations {
   public static void main(String[] args) throws IOException {
     final String portName = (args.length == 1) ? args[0] : "/dev/ttyACM0";
 
+    FileHandler fh = new FileHandler(getAndCreateCheckInAppDir() + File.separator
+        + CHECK_IN_APP_DIR + ".log", 200 * 1024 * 1024, 5, true);
+    LOG.addHandler(fh);
+    fh.setFormatter(new SimpleFormatter());
+
     CheckInServer server = CheckInServer.getInstance();
     //String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-main-app-test.dump";
     //String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-new-user-test.dump";
@@ -239,10 +252,12 @@ public class MainApp implements IDatabaseOperations {
     //final String path = "/tmp/check-in-server-new-user-test.dump";
     File dir = new File(path);
     if (dir.exists()) {
-      System.out.println("Loading attendance records from " + path);
+      //System.out.println("Loading attendance records from " + path);
+      LOG.info("Loading attendance records from " + path);
       server.load(path);
     } else {
-      System.out.println("No attendance records found at path " + path + ". Creating directory for saving database.");
+      //System.out.println("No attendance records found at path " + path + ". Creating directory for saving database.");
+      LOG.info("No attendance records found at path " + path + ". Creating directory for saving database.");
       boolean success = dir.mkdirs();
       if (!success) {
         throw new RuntimeException("Could not create directory " + path + "for saving database!");

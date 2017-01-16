@@ -28,6 +28,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
@@ -341,7 +342,9 @@ public class MainWindow extends JFrame {
       @Override
       public void actionPerformed(ActionEvent e) {
         JTextArea recordArea = new JTextArea();
-        JScrollPane scrollPane = new JScrollPane(recordArea);
+        JTable table = new JTable(new SortedCheckInTableModel());
+        JScrollPane scrollPane = new JScrollPane(/*recordArea*/table);
+        table.setFillsViewportHeight(true);
         scrollPane.setPreferredSize(new Dimension(880, 450));
         String buffer = CheckInServer.getInstance().printToString();
         recordArea.append(buffer);
