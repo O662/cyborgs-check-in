@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
@@ -167,14 +168,23 @@ public class MainApp implements IDatabaseOperations {
 
   @Override
   public void saveDatabase(String newPath) {
+    saveDatabase(newPath, true);
+  }
+
+  @Override
+  public synchronized void saveDatabase(String newPath, boolean updatePath) {
     CheckInServer server = CheckInServer.getInstance();
-    server.print();
-    logDatabase(server.printToString());
+    if (LOG.isLoggable(Level.FINE)) {
+      server.print();
+      logDatabase(server.printToString());
+    }
     try {
       server.dump(newPath);
-      path = newPath;
+      if (updatePath) {
+        path = newPath;
+      }
       //System.out.println("Save complete.");
-      LOG.info("Save complete.");
+      LOG.info("Save complete (" + newPath + ").");
     } catch (IOException e) {
       JOptionPane.showMessageDialog(parent, e.getMessage(), "Save Error", JOptionPane.ERROR_MESSAGE);
       e.printStackTrace();
@@ -205,6 +215,39 @@ public class MainApp implements IDatabaseOperations {
     }
   }
 
+  public void runAutoSave(final String autoSavePath, final long minIntervalMillis,
+      final long saveIntervalMillis, final boolean daemonThread) throws IOException {
+    File dir = new File(autoSavePath);
+    if (!dir.exists()) {
+      boolean success = dir.mkdirs();
+      if (!success) {
+        throw new IOException("Could not create directory " + autoSavePath + " for auto-saving database!");
+      }
+    }
+    Thread t = new Thread(new Runnable() {
+
+      @Override
+      public void run() {
+        long startTime = System.currentTimeMillis();
+        while (true) {
+          while (System.currentTimeMillis() - startTime < saveIntervalMillis /* && CheckInServer.getInstance().hasChanged() */) {
+            try {
+              Thread.sleep(minIntervalMillis);
+            } catch (InterruptedException e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+            }
+          }
+          startTime = System.currentTimeMillis();
+          saveDatabase(autoSavePath, false);
+          startTime = System.currentTimeMillis();
+        }
+      }
+    }, "AutoSave");
+    t.setDaemon(daemonThread);
+    t.start();
+  }
+
   private void exitApp() {
     saveDatabase();
     System.exit(0);
@@ -215,7 +258,7 @@ public class MainApp implements IDatabaseOperations {
     if (appDirLocation == null) {
       appDirLocation = System.getProperty("user.dir");
     }
-    System.out.println("user.home : " + System.getProperty("user.home"));
+    //System.out.println("user.home : " + System.getProperty("user.home"));
     String appDirName = appDirLocation + File.separator + CHECK_IN_APP_DIR;
     File appDir = new File(appDirName);
     if (!appDir.isDirectory()) {
@@ -275,8 +318,11 @@ public class MainApp implements IDatabaseOperations {
       server.setActivity(activity);
     }
 
-    server.print();
-    app.logDatabase(server.printToString());
+    if (LOG.isLoggable(Level.FINE)) {
+      server.print();
+      app.logDatabase(server.printToString());
+    }
+    app.runAutoSave(path + "_auto_save", 60L * 1000L, 120L * 1000L, true);
     app.scanIdsUi();
     if (startSerialPortScan) {
       scanIdsSerial(portName, true);
