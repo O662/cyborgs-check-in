@@ -12,6 +12,7 @@ import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.CheckInServer;
 
+@Deprecated
 public class CheckInTableModel extends AbstractTableModel {
 
   private static final long serialVersionUID = 1L;

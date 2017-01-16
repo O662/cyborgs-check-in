@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.Set;
 import java.util.logging.Logger;
 
 import javax.swing.table.AbstractTableModel;
@@ -24,11 +23,11 @@ public class SortedCheckInTableModel extends AbstractTableModel {
 
   private int rowCount;
   private int colCount;
-  private long[] ids;
-  private String[] firstNames;
-  private String[] lastNames;
-  private CheckInEvent[] lastEvents;
-  private long[] timeStamps;
+//  private long[] ids;
+//  private String[] firstNames;
+//  private String[] lastNames;
+//  private CheckInEvent[] lastEvents;
+//  private long[] timeStamps;
   private DateFormat dateFormat;
   private ArrayList<AttendanceRecord> recordList;
 
@@ -44,11 +43,11 @@ public class SortedCheckInTableModel extends AbstractTableModel {
     rowCount = server.getIdSet().size();
     colCount = 5;
     recordList = new ArrayList<AttendanceRecord>(rowCount);
-    ids = new long[rowCount];
-    firstNames = new String[rowCount];
-    lastNames = new String[rowCount];
-    lastEvents = new CheckInEvent[rowCount];
-    timeStamps = new long[rowCount];
+//    ids = new long[rowCount];
+//    firstNames = new String[rowCount];
+//    lastNames = new String[rowCount];
+//    lastEvents = new CheckInEvent[rowCount];
+//    timeStamps = new long[rowCount];
     for (Long id : server.getIdSet()) {
       AttendanceRecord record = server.getAttendanceRecord(id);
       if (id != record.getPerson().getId()) {
@@ -66,18 +65,34 @@ public class SortedCheckInTableModel extends AbstractTableModel {
         return o1Name.compareToIgnoreCase(o2Name);
       }
     });
-    int irow = 0;
-    for (AttendanceRecord record : recordList) {
-      ids[irow] = record.getPerson().getId();
-      firstNames[irow] = record.getPerson().getFirstName();
-      lastNames[irow] = record.getPerson().getLastName();
-      ArrayList<CheckInEvent> list = record.getEventList();
-      CheckInEvent event = list.get(list.size()-1);
-      lastEvents[irow] = event;
-      timeStamps[irow] = event.getTimeStamp();
-      irow++;
+//    int irow = 0;
+//    for (AttendanceRecord record : recordList) {
+//      ids[irow] = record.getPerson().getId();
+//      firstNames[irow] = record.getPerson().getFirstName();
+//      lastNames[irow] = record.getPerson().getLastName();
+//      ArrayList<CheckInEvent> list = record.getEventList();
+//      CheckInEvent event = list.get(list.size()-1);
+//      lastEvents[irow] = event;
+//      timeStamps[irow] = event.getTimeStamp();
+//      irow++;
+//    }
+  }
+
+  @Override
+  public String getColumnName(int column) {
+    switch (column) {
+    case 0:
+      return "ID";
+    case 1:
+      return "First Name";
+    case 2:
+      return "Last Name";
+    case 3:
+      return "Status";
+    case 4:
+      return "Time";
     }
-    //return buffer;
+    return "" + (char) ('A' + column);
   }
 
   @Override
@@ -94,15 +109,22 @@ public class SortedCheckInTableModel extends AbstractTableModel {
   public Object getValueAt(int rowIndex, int columnIndex) {
     switch (columnIndex) {
       case 0:
-        return ids[rowIndex];
+        //return ids[rowIndex];
+        return recordList.get(rowIndex).getPerson().getId();
       case 1:
-        return firstNames[rowIndex];
+        //return firstNames[rowIndex];
+        return recordList.get(rowIndex).getPerson().getFirstName();
       case 2:
-        return lastNames[rowIndex];
+        //return lastNames[rowIndex];
+        return recordList.get(rowIndex).getPerson().getLastName();
       case 3:
-        return lastEvents[rowIndex].getStatus();
+        //return lastEvents[rowIndex].getStatus();
+        ArrayList<CheckInEvent> list = recordList.get(rowIndex).getEventList();
+        return list.get(list.size()-1).getStatus();
       case 4:
-        return dateFormat.format(new Date(timeStamps[rowIndex]));
+        //return dateFormat.format(new Date(timeStamps[rowIndex]));
+        ArrayList<CheckInEvent> listTS = recordList.get(rowIndex).getEventList();
+        return dateFormat.format(new Date(listTS.get(listTS.size()-1).getTimeStamp()));
     }
     return null;
   }
