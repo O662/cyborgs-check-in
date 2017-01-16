@@ -239,6 +239,7 @@ public class MainApp implements IDatabaseOperations {
    */
   public static void main(String[] args) throws IOException {
     final String portName = (args.length == 1) ? args[0] : "/dev/ttyACM0";
+    boolean startSerialPortScan = false;
 
     FileHandler fh = new FileHandler(getAndCreateCheckInAppDir() + File.separator
         + CHECK_IN_APP_DIR + ".log", 200 * 1024 * 1024, 5, true);
@@ -277,7 +278,9 @@ public class MainApp implements IDatabaseOperations {
     server.print();
     app.logDatabase(server.printToString());
     app.scanIdsUi();
-    scanIdsSerial(portName, true);
+    if (startSerialPortScan) {
+      scanIdsSerial(portName, true);
+    }
     scanIdsTerminal();
     app.exitApp();
     //server.print();
