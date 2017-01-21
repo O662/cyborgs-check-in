@@ -28,6 +28,12 @@ public interface IDatabaseOperations {
   public void saveDatabase(String newPath, boolean updatePath);
 
   /**
+   * Save database to current path;
+   * @param path path to output CSV file
+   */
+  public void saveDatabaseCsv(String path);
+
+  /**
    * Print a message to the database logfile.
    * @param message message to print
    */

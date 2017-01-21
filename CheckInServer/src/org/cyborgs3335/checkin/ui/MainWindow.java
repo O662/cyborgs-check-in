@@ -11,6 +11,8 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.File;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -20,6 +22,7 @@ import javax.swing.BoxLayout;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -300,6 +303,16 @@ public class MainWindow extends JFrame {
       }
     });
     fileMenu.add(saveMenuItem);
+    JMenuItem saveCsvMenuItem = new JMenuItem("Save As CSV...");
+    saveCsvMenuItem.setMnemonic(KeyEvent.VK_C);
+    saveCsvMenuItem.addActionListener(new ActionListener() {
+
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        saveDatabaseCsv();
+      }
+    });
+    fileMenu.add(saveCsvMenuItem);
     JMenuItem exitMenuItem = new JMenuItem("Exit");//, KeyEvent.VK_X);
     exitMenuItem.setMnemonic(KeyEvent.VK_X);
     exitMenuItem.addActionListener(new ActionListener() {
@@ -613,6 +626,54 @@ public class MainWindow extends JFrame {
     dbOperations.saveDatabase();
     //JOptionPane.showMessageDialog(this, "Save not yet implemented", "Save not yet implemented", JOptionPane.INFORMATION_MESSAGE);
     //throw new UnsupportedOperationException("saveDatabase() not yet implemented!");
+  }
+
+  private void saveDatabaseCsv() {
+    JFileChooser chooser = new JFileChooser();
+    int result = chooser.showSaveDialog(this);
+    switch (result) {
+      case JFileChooser.APPROVE_OPTION:
+        File file = chooser.getSelectedFile();
+        if (file.exists()) {
+          if (!file.isFile()) {
+            //TODO warn file not a regular file
+            JOptionPane.showMessageDialog(this, "File " + file + " is not a regular file."
+                + "  Please select a different file name.", "CSV Save Error",
+                JOptionPane.ERROR_MESSAGE);
+          }
+          //TODO ask user to overwrite
+          textArea.append("error\n");
+          //e1.printStackTrace();
+          int confirmResult = JOptionPane.showConfirmDialog(this, "File " + file
+              + " already exists.  Overwrite?", "Overwrite CSV File?",
+              JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+          switch (confirmResult) {
+            case JOptionPane.YES_OPTION:
+              break;
+            case JOptionPane.NO_OPTION:
+              return;
+            case JOptionPane.CANCEL_OPTION:
+            default:
+              return;
+          }
+        } else {
+          try {
+            file.createNewFile();
+          } catch (IOException e) {
+            // TODO show error dialog to user
+            textArea.append(e.getMessage());
+            e.printStackTrace();
+          }
+        }
+        dbOperations.saveDatabaseCsv(file.getAbsolutePath());
+        //JOptionPane.showMessageDialog(parent, e.getMessage(), "CSV Save Error", JOptionPane.ERROR_MESSAGE);
+        break;
+      case JFileChooser.CANCEL_OPTION:
+        break;
+      case JFileChooser.ERROR_OPTION:
+      default:
+        break;
+    }
   }
 
   private void exitApp() {

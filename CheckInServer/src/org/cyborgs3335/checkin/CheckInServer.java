@@ -1,11 +1,12 @@
 package org.cyborgs3335.checkin;
 
 import java.beans.PropertyChangeListener;
-import java.beans.PropertyChangeListenerProxy;
 import java.beans.PropertyChangeSupport;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -13,15 +14,15 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import org.cyborgs3335.checkin.CheckInEvent.Status;
-
-import sun.misc.JavaAWTAccess;
 
 /**
  * Singleton check-in server using a map in memory as the "database".  The map
@@ -32,6 +33,8 @@ import sun.misc.JavaAWTAccess;
  */
 public class CheckInServer {
 
+  private static final Logger LOG = Logger.getLogger(CheckInServer.class.getName());
+
   public static final String ACTIVITY_PROPERTY = "ACTIVITY_PROPERTY";
 
   public static final String DB_ATTENDANCE_RECORDS = "attendance-records.db";
@@ -41,6 +44,8 @@ public class CheckInServer {
   private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
 
   private CheckInActivity activity = null;
+
+  private DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
 
   private static class Singleton {
     private static final CheckInServer INSTANCE = new CheckInServer();
@@ -280,6 +285,75 @@ public class CheckInServer {
     }
   }
 
+  /**
+   * Dump "database" to filesystem.
+   * @param path CSV file to save "database" to
+   * @throws IOException on I/O error dumping "database" to filesystem
+   */
+  /*package*/void dumpCsv(String path) throws IOException {
+    File csvFile = new File(path);
+    if (!csvFile.isFile()) {
+      throw new IOException("Path " + path + " must be a file!");
+    }
+    dumpAttendanceRecordsCsv(path);
+  }
+
+  private void dumpAttendanceRecordsCsv(String path) {
+    BufferedWriter writer = null;
+    try {
+      writer = new BufferedWriter(new FileWriter(path));
+      writer.write("Activity Name,Start Date,End Date\n");
+      writer.write(activity.getName() + "," + dateFormat.format(activity.getStartDate())
+          + "," + dateFormat.format(activity.getEndDate()) + "\n");
+      writer.write("ID,First Name, Last Name,Check-In Status,Date\n");
+      ArrayList<AttendanceRecord> recordList = getSortedAttendanceRecords();
+      for (AttendanceRecord record : recordList) {
+        ArrayList<CheckInEvent> list = record.getEventList();
+        CheckInEvent event = list.get(list.size()-1);
+        writer.write(record.getPerson().getId()
+            + "," + record.getPerson().getFirstName()
+            + "," + record.getPerson().getLastName()
+            + "," + event.getStatus()
+            + "," + dateFormat.format(new Date(event.getTimeStamp())) + "\n");
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      if (writer != null) {
+        try {
+          writer.close();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      } 
+    }
+  }
+
+  public ArrayList<AttendanceRecord> getSortedAttendanceRecords() {
+    ArrayList<AttendanceRecord> recordList;
+    int rowCount = getIdSet().size();
+    recordList = new ArrayList<AttendanceRecord>(rowCount);
+    for (Long id : getIdSet()) {
+      AttendanceRecord record = getAttendanceRecord(id);
+      if (id != record.getPerson().getId()) {
+        LOG.info("ID " + id + " does not match ID " + record.getPerson().getId()
+            + " for attendance record from person " + record.getPerson());
+      }
+      recordList.add(record);
+    }
+    Collections.sort(recordList, new Comparator<AttendanceRecord>() {
+
+      @Override
+      public int compare(AttendanceRecord o1, AttendanceRecord o2) {
+        String o1Name = o1.getPerson().getLastName() + " " + o1.getPerson().getFirstName();
+        String o2Name = o2.getPerson().getLastName() + " " + o2.getPerson().getFirstName();
+        return o1Name.compareToIgnoreCase(o2Name);
+      }
+    });
+
+    return recordList;
+  }
+
   public Set<Long> getIdSet() {
     return map.keySet();
   }
@@ -289,7 +363,6 @@ public class CheckInServer {
   }
 
   public void checkOutAll() {
-    DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
     synchronized (map) {
       for (Long id : map.keySet()) {
         AttendanceRecord record = map.get(id);
@@ -308,7 +381,6 @@ public class CheckInServer {
    * Print the last check-in event for each attendance record.
    */
   public void print() {
-    DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
     if (activity != null) {
       activity.print(dateFormat);
     }
