@@ -35,6 +35,11 @@ public class DumpDatabase {
         System.out.print("id " + id + " \tname " + record.getPerson() + " \tevents: ");
         ArrayList<CheckInEvent> list = record.getEventList();
         for (CheckInEvent event : list) {
+          if (event.getActivity() != null) {
+            System.out.print(" " + event.getActivity().getName());
+          } else {
+            System.out.print(" " + event.getActivity());
+          }
           System.out.print(" " + event.getStatus() + " " + dateFormat.format(new Date(event.getTimeStamp())));
         }
         System.out.println();
@@ -48,7 +53,8 @@ public class DumpDatabase {
    * @throws IOException
    */
   public static void main(String[] args) throws IOException {
-    String path = (args.length == 1) ? path = args[0] : "/tmp/check-in-server2-test.dump";
+    //String path = (args.length == 1) ? path = args[0] : "/tmp/check-in-server2-test.dump";
+    String path = (args.length == 1) ? path = args[0] : "/home/brian/CyborgsCheckIn/check-in-server-2017-kickoff.dump";
 
     CheckInServer server = CheckInServer.getInstance();
     File dir = new File(path);

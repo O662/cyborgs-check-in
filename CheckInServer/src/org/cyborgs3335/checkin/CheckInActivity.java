@@ -54,4 +54,10 @@ public class CheckInActivity implements Serializable {
         + " Start Time " + dateFormat.format(new Date(timeStart))
         + " End Time " + dateFormat.format(new Date(timeEnd));
   }
+
+  @Override
+  public String toString() {
+    DateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH:mm");
+    return name + "-" + format.format(new Date(timeStart)) + "-" + format.format(new Date(timeEnd));
+  }
 }

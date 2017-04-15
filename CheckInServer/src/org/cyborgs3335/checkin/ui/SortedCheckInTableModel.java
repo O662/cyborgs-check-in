@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 
 import javax.swing.table.AbstractTableModel;
 
+import org.cyborgs3335.checkin.ActivityAttendanceRecord;
 import org.cyborgs3335.checkin.AttendanceRecord;
 import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent;
@@ -41,7 +42,7 @@ public class SortedCheckInTableModel extends AbstractTableModel {
       LOG.info("creating table, but no activity set!");
     }
     rowCount = server.getIdSet().size();
-    colCount = 5;
+    colCount = 6;
     recordList = new ArrayList<AttendanceRecord>(rowCount);
 //    ids = new long[rowCount];
 //    firstNames = new String[rowCount];
@@ -88,8 +89,10 @@ public class SortedCheckInTableModel extends AbstractTableModel {
     case 2:
       return "Last Name";
     case 3:
-      return "Status";
+      return "Activity";
     case 4:
+      return "Status";
+    case 5:
       return "Time";
     }
     return "" + (char) ('A' + column);
@@ -107,6 +110,7 @@ public class SortedCheckInTableModel extends AbstractTableModel {
 
   @Override
   public Object getValueAt(int rowIndex, int columnIndex) {
+    ArrayList<CheckInEvent> evlist = recordList.get(rowIndex).getEventList();
     switch (columnIndex) {
       case 0:
         //return ids[rowIndex];
@@ -118,13 +122,26 @@ public class SortedCheckInTableModel extends AbstractTableModel {
         //return lastNames[rowIndex];
         return recordList.get(rowIndex).getPerson().getLastName();
       case 3:
-        //return lastEvents[rowIndex].getStatus();
-        ArrayList<CheckInEvent> list = recordList.get(rowIndex).getEventList();
-        return list.get(list.size()-1).getStatus();
+        CheckInActivity activity = evlist.get(evlist.size()-1).getActivity();
+        if (activity != null) {
+          return activity.toString();
+        }
+        //AttendanceRecord record = recordList.get(rowIndex);
+        //if (record instanceof ActivityAttendanceRecord) {
+        //  CheckInActivity activity = ((ActivityAttendanceRecord) record).getActivity();
+        //  if (activity != null) {
+        //    return activity.toString();
+        //  }
+        //}
+        return CheckInEvent.DEFAULT_ACTIVITY.toString();
       case 4:
+        //return lastEvents[rowIndex].getStatus();
+        //ArrayList<CheckInEvent> list = recordList.get(rowIndex).getEventList();
+        return evlist.get(evlist.size()-1).getStatus();
+      case 5:
         //return dateFormat.format(new Date(timeStamps[rowIndex]));
-        ArrayList<CheckInEvent> listTS = recordList.get(rowIndex).getEventList();
-        return dateFormat.format(new Date(listTS.get(listTS.size()-1).getTimeStamp()));
+        //ArrayList<CheckInEvent> listTS = recordList.get(rowIndex).getEventList();
+        return dateFormat.format(new Date(evlist.get(evlist.size()-1).getTimeStamp()));
     }
     return null;
   }

@@ -95,7 +95,12 @@ public class CheckInServer {
 
   public Person addUser(String firstName, String lastName) {
     long id = getNewId();
-    CheckInEvent event = new CheckInEvent(Status.CheckedOut, 0);
+    CheckInEvent event = null;
+    if (activity != null) {
+      event = new CheckInEvent(activity, Status.CheckedOut, 0);
+    } else {
+      event = new CheckInEvent(Status.CheckedOut, 0);
+    }
     Person person = new Person(id, firstName, lastName);
     AttendanceRecord record = new AttendanceRecord(person);
     record.getEventList().add(event);
@@ -161,7 +166,11 @@ public class CheckInServer {
         checkedIn = true;
         break;
       }
-      map.get(id).getEventList().add(new CheckInEvent(status, timeStamp));
+      if (activity != null) {
+        map.get(id).getEventList().add(new CheckInEvent(activity, status, timeStamp));
+      } else {
+        map.get(id).getEventList().add(new CheckInEvent(status, timeStamp));
+      }
     }
     return checkedIn;
   }
@@ -295,7 +304,7 @@ public class CheckInServer {
     if (!csvFile.isFile()) {
       throw new IOException("Path " + path + " must be a file!");
     }
-    dumpAttendanceRecordsCsv(path);
+    dumpAttendanceRecordsAllEventsCsv(path);
   }
 
   private void dumpAttendanceRecordsCsv(String path) {
@@ -305,7 +314,7 @@ public class CheckInServer {
       writer.write("Activity Name,Start Date,End Date\n");
       writer.write(activity.getName() + "," + dateFormat.format(activity.getStartDate())
           + "," + dateFormat.format(activity.getEndDate()) + "\n");
-      writer.write("ID,First Name, Last Name,Check-In Status,Date\n");
+      writer.write("ID,First Name,Last Name,Check-In Status,Date\n");
       ArrayList<AttendanceRecord> recordList = getSortedAttendanceRecords();
       for (AttendanceRecord record : recordList) {
         ArrayList<CheckInEvent> list = record.getEventList();
@@ -315,6 +324,44 @@ public class CheckInServer {
             + "," + record.getPerson().getLastName()
             + "," + event.getStatus()
             + "," + dateFormat.format(new Date(event.getTimeStamp())) + "\n");
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      if (writer != null) {
+        try {
+          writer.close();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      } 
+    }
+  }
+
+  private void dumpAttendanceRecordsAllEventsCsv(String path) {
+    BufferedWriter writer = null;
+    try {
+      writer = new BufferedWriter(new FileWriter(path));
+      writer.write("Activity Name,Start Date,End Date\n");
+      writer.write(activity.getName() + "," + dateFormat.format(activity.getStartDate())
+          + "," + dateFormat.format(activity.getEndDate()) + "\n");
+      writer.write("ID,First Name,Last Name,Activity Name,Start Date,End Date,Check-In Status,Date\n");
+      ArrayList<AttendanceRecord> recordList = getSortedAttendanceRecords();
+      for (AttendanceRecord record : recordList) {
+        ArrayList<CheckInEvent> list = record.getEventList();
+        //CheckInEvent event = list.get(list.size()-1);
+        writer.write(record.getPerson().getId()
+            + "," + record.getPerson().getFirstName()
+            + "," + record.getPerson().getLastName());
+        for (CheckInEvent event : list) {
+          CheckInActivity activity = (event.getActivity() != null) ? event.getActivity() : CheckInEvent.DEFAULT_ACTIVITY;
+          writer.write("," + activity.getName()
+              + "," + activity.getStartDate()
+              + "," + activity.getEndDate()
+              + "," + event.getStatus()
+              + "," + dateFormat.format(new Date(event.getTimeStamp())));
+        }
+        writer.write("\n");
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -368,8 +415,13 @@ public class CheckInServer {
         AttendanceRecord record = map.get(id);
         CheckInEvent event = record.getLastEvent();
         if (event.getStatus().equals(CheckInEvent.Status.CheckedIn)) {
-          map.get(id).getEventList().add(new CheckInEvent(CheckInEvent.Status.CheckedOut,
-              System.currentTimeMillis()));
+          if (activity != null) {
+            map.get(id).getEventList().add(new CheckInEvent(activity,
+                CheckInEvent.Status.CheckedOut, System.currentTimeMillis()));
+          } else {
+            map.get(id).getEventList().add(new CheckInEvent(CheckInEvent.Status.CheckedOut,
+                System.currentTimeMillis()));
+          }
         }
         System.out.println("id " + id + " name " + record.getPerson() + " check out "
             + dateFormat.format(new Date(event.getTimeStamp())));
