@@ -13,6 +13,7 @@ import java.io.ObjectOutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -47,6 +48,8 @@ public class CheckInServer {
 
   private DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
 
+  private DateFormat dateFormatCsv = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+
   private static class Singleton {
     private static final CheckInServer INSTANCE = new CheckInServer();
   }
@@ -58,8 +61,9 @@ public class CheckInServer {
   /*package */void addDefaultUsers() {
     char first = 'a';
     char last = 'z';
+    CheckInActivity defaultActivity = (activity != null) ? activity : CheckInEvent.DEFAULT_ACTIVITY;
     for (long id = 0; id < 10; id++) {
-      CheckInEvent event = new CheckInEvent(Status.CheckedOut, 0);
+      CheckInEvent event = new CheckInEvent(defaultActivity, Status.CheckedOut, 0);
       Person person = new Person(id, ""+first+first+first, ""+last+last+last);
       AttendanceRecord record = new AttendanceRecord(person);
       record.getEventList().add(event);
@@ -70,7 +74,7 @@ public class CheckInServer {
 
     // Card UID: 94 18 60 EC value 941860EC id 2484625644
     long id = 2484625644L;
-    CheckInEvent event = new CheckInEvent(Status.CheckedOut, 0);
+    CheckInEvent event = new CheckInEvent(defaultActivity, Status.CheckedOut, 0);
     Person person = new Person(id, "Blue1", "Token1");
     AttendanceRecord record = new AttendanceRecord(person);
     record.getEventList().add(event);
@@ -78,7 +82,7 @@ public class CheckInServer {
 
     // Card UID: 94 6C 56 EC value 946C56EC id 2490128108
     id = 2490128108L;
-    event = new CheckInEvent(Status.CheckedOut, 0);
+    event = new CheckInEvent(defaultActivity, Status.CheckedOut, 0);
     person = new Person(id, "Blue2", "Token2");
     record = new AttendanceRecord(person);
     record.getEventList().add(event);
@@ -86,7 +90,7 @@ public class CheckInServer {
 
     // Card UID: 62 21 E4 D5 value 6221E4D5 id 1646388437
     id = 1646388437L;
-    event = new CheckInEvent(Status.CheckedOut, 0);
+    event = new CheckInEvent(defaultActivity, Status.CheckedOut, 0);
     person = new Person(id, "White1", "Card1");
     record = new AttendanceRecord(person);
     record.getEventList().add(event);
@@ -99,7 +103,7 @@ public class CheckInServer {
     if (activity != null) {
       event = new CheckInEvent(activity, Status.CheckedOut, 0);
     } else {
-      event = new CheckInEvent(Status.CheckedOut, 0);
+      event = new CheckInEvent(CheckInEvent.DEFAULT_ACTIVITY, Status.CheckedOut, 0);
     }
     Person person = new Person(id, firstName, lastName);
     AttendanceRecord record = new AttendanceRecord(person);
@@ -169,7 +173,7 @@ public class CheckInServer {
       if (activity != null) {
         map.get(id).getEventList().add(new CheckInEvent(activity, status, timeStamp));
       } else {
-        map.get(id).getEventList().add(new CheckInEvent(status, timeStamp));
+        map.get(id).getEventList().add(new CheckInEvent(CheckInEvent.DEFAULT_ACTIVITY, status, timeStamp));
       }
     }
     return checkedIn;
@@ -304,7 +308,8 @@ public class CheckInServer {
     if (!csvFile.isFile()) {
       throw new IOException("Path " + path + " must be a file!");
     }
-    dumpAttendanceRecordsAllEventsCsv(path);
+    //dumpAttendanceRecordsAllEventsCsv2(path);
+    dumpAttendanceRecordsHoursPerDayCsv(path);
   }
 
   private void dumpAttendanceRecordsCsv(String path) {
@@ -376,6 +381,133 @@ public class CheckInServer {
     }
   }
 
+  private void dumpAttendanceRecordsAllEventsCsv2(String path) {
+    BufferedWriter writer = null;
+    try {
+      writer = new BufferedWriter(new FileWriter(path));
+      writer.write("Activity Name,Start Date,End Date\n");
+      writer.write(activity.getName() + "," + dateFormatCsv.format(activity.getStartDate())
+          + "," + dateFormatCsv.format(activity.getEndDate()) + "\n");
+      writer.write("ID,First Name,Last Name,Activity Name,Start Date,End Date,Check-In Status,Timestamp\n");
+      ArrayList<AttendanceRecord> recordList = getSortedAttendanceRecords();
+      long timeStampMin = Long.MAX_VALUE;
+      long timeStampMax = Long.MIN_VALUE;
+      for (AttendanceRecord record : recordList) {
+        if (!record.areEventsConsistent()) {
+          LOG.info("Found inconsistent attendance record for " + record.getPerson());
+        }
+        ArrayList<CheckInEvent> list = record.getEventList();
+        //CheckInEvent event = list.get(list.size()-1);
+        String personStr = record.getPerson().getId()
+            + "," + record.getPerson().getFirstName()
+            + "," + record.getPerson().getLastName();
+        for (CheckInEvent event : list) {
+          CheckInActivity activity = (event.getActivity() != null) ? event.getActivity() : CheckInEvent.DEFAULT_ACTIVITY;
+          writer.write(personStr
+              + "," + activity.getName()
+              + "," + activity.getStartDate()
+              + "," + activity.getEndDate()
+              + "," + event.getStatus()
+              + "," + dateFormatCsv.format(new Date(event.getTimeStamp())) + "\n");
+          if (event.getTimeStamp() > 0) {
+            timeStampMin = Math.min(timeStampMin, event.getTimeStamp());
+          }
+          if (event.getTimeStamp() < Long.MAX_VALUE) {
+            timeStampMax = Math.max(timeStampMax, event.getTimeStamp());
+          }
+        }
+        //System.out.println("For " + record.getPerson() + ": logged a total of " + record.computeTotalAttendanceTime()/(1000. * 60 * 60) + " hrs");
+      }
+      //System.out.println("timestamp min " + timeStampMin + " max " + timeStampMax);
+      LOG.info("timestamp min " + dateFormatCsv.format(new Date(timeStampMin)) + " max " + dateFormatCsv.format(new Date(timeStampMax)));
+      //recordList.get(0).getHoursByDay(new Date(timeStampMin), new Date(timeStampMax));
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      if (writer != null) {
+        try {
+          writer.close();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      } 
+    }
+  }
+
+  private void dumpAttendanceRecordsHoursPerDayCsv(String path) {
+    BufferedWriter writer = null;
+    try {
+      writer = new BufferedWriter(new FileWriter(path));
+      //writer.write("Activity Name,Start Date,End Date\n");
+      //writer.write(activity.getName() + "," + dateFormatCsv.format(activity.getStartDate())
+      //    + "," + dateFormatCsv.format(activity.getEndDate()) + "\n");
+      //writer.write("ID,First Name,Last Name,Activity Name,Start Date,End Date,Check-In Status,Timestamp\n");
+      ArrayList<AttendanceRecord> recordList = getSortedAttendanceRecords();
+
+      // Find min, max timestamp
+      long timeStampMin = Long.MAX_VALUE;
+      long timeStampMax = Long.MIN_VALUE;
+      for (AttendanceRecord record : recordList) {
+        if (!record.areEventsConsistent()) {
+          LOG.info("Found inconsistent attendance record for " + record.getPerson());
+        }
+        ArrayList<CheckInEvent> list = record.getEventList();
+        for (CheckInEvent event : list) {
+          if (event.getTimeStamp() > 0) {
+            timeStampMin = Math.min(timeStampMin, event.getTimeStamp());
+          }
+          if (event.getTimeStamp() < Long.MAX_VALUE) {
+            timeStampMax = Math.max(timeStampMax, event.getTimeStamp());
+          }
+        }
+      }
+      DateFormat dateFmt = new SimpleDateFormat("yyyy/MM/dd");
+      String dates = "";
+      long dayMillis = 1000L * 60L * 60L * 24L;
+      int ndays = 1 + (int) (0.5 + (double) (timeStampMax - timeStampMin) / (double) dayMillis);
+      for (int i = 0; i < ndays; i++) {
+        dates += "," + dateFmt.format(new Date(timeStampMin + i * dayMillis));
+      }
+      writer.write("ID,First Name,Last Name" + dates + ",Total Hours\n");
+
+      //System.out.println("ndays " + ndays);
+      //System.out.println("timestamp min " + timeStampMin + " max " + timeStampMax);
+      LOG.info("timestamp min " + dateFormatCsv.format(new Date(timeStampMin)) + " max " + dateFormatCsv.format(new Date(timeStampMax)));
+      //recordList.get(0).getHoursByDay(new Date(timeStampMin), new Date(timeStampMax));
+
+      for (AttendanceRecord record : recordList) {
+        if (!record.areEventsConsistent()) {
+          LOG.info("Found inconsistent attendance record for " + record.getPerson());
+        }
+        ArrayList<CheckInEvent> list = record.getEventList();
+        //CheckInEvent event = list.get(list.size()-1);
+        String personStr = record.getPerson().getId()
+            + "," + record.getPerson().getFirstName()
+            + "," + record.getPerson().getLastName();
+        String eventHrs = floatArrayToString(record.getHoursByDay(timeStampMin, ndays), "%.3f");
+        writer.write(personStr + eventHrs + "," + String.format("%.3f", record.computeTotalAttendanceTime()/(1000. * 60 * 60)) + "\n");
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      if (writer != null) {
+        try {
+          writer.close();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      } 
+    }
+  }
+
+  private String floatArrayToString(float[] hoursByDay, String fmt) {
+    String val = "";
+    for (int i = 0; i < hoursByDay.length; i++) {
+      val += "," + String.format(fmt, hoursByDay[i]);
+    }
+    return val;
+  }
+
   public ArrayList<AttendanceRecord> getSortedAttendanceRecords() {
     ArrayList<AttendanceRecord> recordList;
     int rowCount = getIdSet().size();
@@ -419,8 +551,8 @@ public class CheckInServer {
             map.get(id).getEventList().add(new CheckInEvent(activity,
                 CheckInEvent.Status.CheckedOut, System.currentTimeMillis()));
           } else {
-            map.get(id).getEventList().add(new CheckInEvent(CheckInEvent.Status.CheckedOut,
-                System.currentTimeMillis()));
+            map.get(id).getEventList().add(new CheckInEvent(CheckInEvent.DEFAULT_ACTIVITY,
+                CheckInEvent.Status.CheckedOut, System.currentTimeMillis()));
           }
         }
         System.out.println("id " + id + " name " + record.getPerson() + " check out "

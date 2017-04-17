@@ -27,11 +27,6 @@ public class CheckInEvent implements Serializable {
     this.timeStamp = timeStamp;
   }
 
-  @Deprecated
-  public CheckInEvent(Status status, long timeStamp) {
-    this(DEFAULT_ACTIVITY, status, timeStamp);
-  }
-
   public CheckInActivity getActivity() {
     return activity;
   }

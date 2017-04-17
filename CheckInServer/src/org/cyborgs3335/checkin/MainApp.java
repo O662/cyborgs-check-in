@@ -303,7 +303,8 @@ public class MainApp implements IDatabaseOperations {
     CheckInServer server = CheckInServer.getInstance();
     //String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-main-app-test.dump";
     //String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-new-user-test.dump";
-    String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-2017-kickoff.dump";
+    //String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-2017-kickoff.dump";
+    String path = getAndCreateCheckInAppDir() + File.separator + "test1/check-in-server-2017-kickoff.dump";
     //final String path = "/tmp/check-in-server-new-user-test.dump";
     File dir = new File(path);
     if (dir.exists()) {
