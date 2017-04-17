@@ -282,6 +282,7 @@ public class MainWindow extends JFrame {
     // File menu
     JMenu fileMenu = new JMenu("File");
     fileMenu.setMnemonic(KeyEvent.VK_F);
+    // Load
     JMenuItem loadMenuItem = new JMenuItem("Load...");
     loadMenuItem.setMnemonic(KeyEvent.VK_L);
     loadMenuItem.addActionListener(new ActionListener() {
@@ -293,6 +294,7 @@ public class MainWindow extends JFrame {
     });
     loadMenuItem.setEnabled(false);
     fileMenu.add(loadMenuItem);
+    // Save
     JMenuItem saveMenuItem = new JMenuItem("Save");
     saveMenuItem.setMnemonic(KeyEvent.VK_S);
     saveMenuItem.addActionListener(new ActionListener() {
@@ -303,6 +305,7 @@ public class MainWindow extends JFrame {
       }
     });
     fileMenu.add(saveMenuItem);
+    // Save As CSV
     JMenuItem saveCsvMenuItem = new JMenuItem("Save As CSV...");
     saveCsvMenuItem.setMnemonic(KeyEvent.VK_C);
     saveCsvMenuItem.addActionListener(new ActionListener() {
@@ -313,6 +316,18 @@ public class MainWindow extends JFrame {
       }
     });
     fileMenu.add(saveCsvMenuItem);
+    // Save As Hours-by-Day CSV
+    JMenuItem saveHoursByDayCsvMenuItem = new JMenuItem("Save As Hours-by-Day CSV...");
+    //saveHoursByDayCsvMenuItem.setMnemonic(KeyEvent.VK_C);
+    saveHoursByDayCsvMenuItem.addActionListener(new ActionListener() {
+
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        saveDatabaseHoursByDayCsv();
+      }
+    });
+    fileMenu.add(saveHoursByDayCsvMenuItem);
+    // Exit
     JMenuItem exitMenuItem = new JMenuItem("Exit");//, KeyEvent.VK_X);
     exitMenuItem.setMnemonic(KeyEvent.VK_X);
     exitMenuItem.addActionListener(new ActionListener() {
@@ -666,6 +681,54 @@ public class MainWindow extends JFrame {
           }
         }
         dbOperations.saveDatabaseCsv(file.getAbsolutePath());
+        //JOptionPane.showMessageDialog(parent, e.getMessage(), "CSV Save Error", JOptionPane.ERROR_MESSAGE);
+        break;
+      case JFileChooser.CANCEL_OPTION:
+        break;
+      case JFileChooser.ERROR_OPTION:
+      default:
+        break;
+    }
+  }
+
+  private void saveDatabaseHoursByDayCsv() {
+    JFileChooser chooser = new JFileChooser();
+    int result = chooser.showSaveDialog(this);
+    switch (result) {
+      case JFileChooser.APPROVE_OPTION:
+        File file = chooser.getSelectedFile();
+        if (file.exists()) {
+          if (!file.isFile()) {
+            //TODO warn file not a regular file
+            JOptionPane.showMessageDialog(this, "File " + file + " is not a regular file."
+                + "  Please select a different file name.", "CSV Save Error",
+                JOptionPane.ERROR_MESSAGE);
+          }
+          //TODO ask user to overwrite
+          //textArea.append("error\n");
+          //e1.printStackTrace();
+          int confirmResult = JOptionPane.showConfirmDialog(this, "File " + file
+              + " already exists.  Overwrite?", "Overwrite CSV File?",
+              JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+          switch (confirmResult) {
+            case JOptionPane.YES_OPTION:
+              break;
+            case JOptionPane.NO_OPTION:
+              return;
+            case JOptionPane.CANCEL_OPTION:
+            default:
+              return;
+          }
+        } else {
+          try {
+            file.createNewFile();
+          } catch (IOException e) {
+            // TODO show error dialog to user
+            textArea.append(e.getMessage());
+            e.printStackTrace();
+          }
+        }
+        dbOperations.saveDatabaseHoursByDayCsv(file.getAbsolutePath());
         //JOptionPane.showMessageDialog(parent, e.getMessage(), "CSV Save Error", JOptionPane.ERROR_MESSAGE);
         break;
       case JFileChooser.CANCEL_OPTION:

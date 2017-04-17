@@ -34,6 +34,12 @@ public interface IDatabaseOperations {
   public void saveDatabaseCsv(String path);
 
   /**
+   * Save hours-by-day information from database to current path;
+   * @param path path to output CSV file
+   */
+  public void saveDatabaseHoursByDayCsv(String path);
+
+  /**
    * Print a message to the database logfile.
    * @param message message to print
    */

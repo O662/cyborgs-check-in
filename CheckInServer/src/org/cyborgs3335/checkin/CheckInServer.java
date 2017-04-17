@@ -308,7 +308,19 @@ public class CheckInServer {
     if (!csvFile.isFile()) {
       throw new IOException("Path " + path + " must be a file!");
     }
-    //dumpAttendanceRecordsAllEventsCsv2(path);
+    dumpAttendanceRecordsAllEventsCsv2(path);
+  }
+
+  /**
+   * Dump "database" hours-by-day information to filesystem.
+   * @param path CSV file to save "database" to
+   * @throws IOException on I/O error dumping "database" to filesystem
+   */
+  /*package*/void dumpHoursByDayCsv(String path) throws IOException {
+    File csvFile = new File(path);
+    if (!csvFile.isFile()) {
+      throw new IOException("Path " + path + " must be a file!");
+    }
     dumpAttendanceRecordsHoursPerDayCsv(path);
   }
 

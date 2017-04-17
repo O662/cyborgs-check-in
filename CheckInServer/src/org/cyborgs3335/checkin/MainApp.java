@@ -203,6 +203,17 @@ public class MainApp implements IDatabaseOperations {
   }
 
   @Override
+  public void saveDatabaseHoursByDayCsv(String path) {
+    try {
+      CheckInServer.getInstance().dumpHoursByDayCsv(path);
+      LOG.info("CSV save complete (" + path + ").");
+    } catch (IOException e) {
+      JOptionPane.showMessageDialog(parent, e.getMessage(), "CSV Save Error", JOptionPane.ERROR_MESSAGE);
+      e.printStackTrace();
+    }
+  }
+
+  @Override
   public void logDatabase(String message) {
     if (logWriter == null) {
       try {
