@@ -642,7 +642,7 @@ public class MainWindow extends JFrame {
                 JOptionPane.ERROR_MESSAGE);
           }
           //TODO ask user to overwrite
-          textArea.append("error\n");
+          //textArea.append("error\n");
           //e1.printStackTrace();
           int confirmResult = JOptionPane.showConfirmDialog(this, "File " + file
               + " already exists.  Overwrite?", "Overwrite CSV File?",
