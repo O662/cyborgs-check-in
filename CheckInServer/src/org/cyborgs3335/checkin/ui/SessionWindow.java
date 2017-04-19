@@ -10,16 +10,23 @@ import java.awt.event.FocusListener;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JSpinner;
 import javax.swing.JTextField;
+import javax.swing.SpinnerDateModel;
 import javax.swing.SwingConstants;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInServer;
@@ -32,13 +39,13 @@ public class SessionWindow extends JFrame {
 
   private JTextField nameField;
 
-  private JTextField timeStartField;
-
   private JLabel timeStartLabel;
 
-  private JTextField timeEndField;
+  private SpinnerDateModel dateModelStart;
 
   private JLabel timeEndLabel;
+
+  private SpinnerDateModel dateModelEnd;
 
   private JLabel timeLengthLabel;
 
@@ -79,6 +86,13 @@ public class SessionWindow extends JFrame {
         update();
       }
     };
+    ChangeListener changeListener = new ChangeListener() {
+
+      @Override
+      public void stateChanged(ChangeEvent e) {
+        update();
+      }
+    };
 
     // Activity
     nameField = new JTextField(20);
@@ -86,42 +100,57 @@ public class SessionWindow extends JFrame {
     nameField.addActionListener(actionListener);
     nameField.addFocusListener(focusListener);
 
-    // Start time
+    // Start time (truncate to exact minutes)
     long timeStart = System.currentTimeMillis();
-    timeStartField = new JTextField(dateFormat.format(timeStart), 20);
-    parameterPanel.add(createSingleParameterPanel(new JLabel("Start Time"), timeStartField));
-    timeStartField.addActionListener(actionListener);
-    timeStartField.addFocusListener(focusListener);
+    Calendar cal = Calendar.getInstance();
+    cal.setTime(new Date(timeStart));
+    cal.set(Calendar.SECOND, 0);
+    cal.set(Calendar.MILLISECOND, 0);
+    timeStart = cal.getTimeInMillis();
+    dateModelStart = new SpinnerDateModel(new Date(timeStart), null, null, Calendar.MINUTE);
+    JSpinner timeSpinnerStart = new JSpinner(dateModelStart);
+    parameterPanel.add(createSingleParameterPanel(new JLabel("Start Time"), timeSpinnerStart));
+    timeSpinnerStart.addChangeListener(changeListener);
+    timeSpinnerStart.addFocusListener(focusListener);
     timeStartLabel = new JLabel("time=" + timeStart);
     parameterPanel.add(timeStartLabel);
 
     // End time
     long timeEnd = timeStart +3600L * 1000L;
-    timeEndField = new JTextField(dateFormat.format(timeEnd), 20);
-    parameterPanel.add(createSingleParameterPanel(new JLabel("End Time"), timeEndField));
-    timeEndField.addActionListener(actionListener);
-    timeEndField.addFocusListener(focusListener);
+    dateModelEnd = new SpinnerDateModel(new Date(timeEnd), null, null, Calendar.MINUTE);
+    JSpinner timeSpinnerEnd = new JSpinner(dateModelEnd);
+    parameterPanel.add(createSingleParameterPanel(new JLabel("End Time"), timeSpinnerEnd));
+    timeSpinnerEnd.addChangeListener(changeListener);
+    timeSpinnerEnd.addFocusListener(focusListener);
     timeEndLabel = new JLabel("time=" + (timeEnd));
     parameterPanel.add(timeEndLabel);
 
     // Time length
-    timeLengthLabel = new JLabel("Time Length: " + timeFormat(timeEnd - timeStart));
-    parameterPanel.add(timeLengthLabel);
+    timeLengthLabel = new JLabel(timeFormat(timeEnd - timeStart));
+    parameterPanel.add(createSingleParameterPanel(new JLabel("Time Length"), timeLengthLabel));
 
     // Ok button
     JButton okButton = new JButton("Ok");
     okButton.addActionListener(new OkActionListener(this));
-    JPanel buttonPanel = new JPanel();//new BorderLayout(5, 5));
-    buttonPanel.add(Box.createHorizontalGlue());//, BorderLayout.WEST);
-    buttonPanel.add(okButton);//, BorderLayout.CENTER);
-    buttonPanel.add(Box.createHorizontalGlue());//, BorderLayout.EAST);
+
+    // Cancel button
+    JButton cancelButton = new JButton("Cancel");
+    cancelButton.addActionListener(new CancelActionListener());
+
+    // Button panel
+    JPanel buttonPanel = new JPanel();
+    buttonPanel.add(Box.createHorizontalGlue());
+    buttonPanel.add(okButton);
+    buttonPanel.add(Box.createHorizontalGlue());
+    buttonPanel.add(cancelButton);
+    buttonPanel.add(Box.createHorizontalGlue());
     panel.add(buttonPanel, BorderLayout.SOUTH);
 
     CheckInActivity activity = CheckInServer.getInstance().getActivity();
     if (activity != null) {
       nameField.setText(activity.getName());
-      timeStartField.setText(dateFormat.format(activity.getStartDate()));
-      timeEndField.setText(dateFormat.format(activity.getEndDate()));
+      dateModelStart.setValue(activity.getStartDate());
+      dateModelEnd.setValue(activity.getEndDate());
       update();
     }
     this.add(panel);
@@ -133,21 +162,21 @@ public class SessionWindow extends JFrame {
    * @return time in human readable format
    */
   private String timeFormat(long time) {
-    if (time < 1000L) {
+    if (Math.abs(time) < 1000L) {
       return String.format("%d msec", time);
-    } else if (time < 60L * 1000L) {
+    } else if (Math.abs(time) < 60L * 1000L) {
       return String.format("%.3f sec", time/1000.0);
-    } else if (time < 3600L * 1000L) {
+    } else if (Math.abs(time) < 3600L * 1000L) {
       return String.format("%.3f min", time/(60L * 1000.0));
-    } else if (time < 24L * 3600L * 1000L) {
+    } else if (Math.abs(time) < 24L * 3600L * 1000L) {
       return String.format("%.3f hrs", time/(3600L * 1000.0));
-    } else if (time < 365L * 24L * 3600L * 1000L) {
+    } else if (Math.abs(time) < 365L * 24L * 3600L * 1000L) {
       return String.format("%.3f days", time/(24L * 3600L * 1000.0));
     }
     return String.format("%.3f yrs", time/(365L * 24L * 3600L * 1000.0));
   }
 
-  private Box createSingleParameterPanel(JLabel label, JTextField field) {
+  private Box createSingleParameterPanel(JLabel label, JComponent field) {
     field.setMaximumSize(field.getPreferredSize());
     Box box = new Box(BoxLayout.X_AXIS);
     box.add(Box.createHorizontalStrut(5));
@@ -161,18 +190,16 @@ public class SessionWindow extends JFrame {
   }
 
   private void update() {
-    String timeStartString = timeStartField.getText();
-    String timeEndString = timeEndField.getText();
-    try {
-      long timeStart = dateFormat.parse(timeStartString).getTime();
-      long timeEnd = dateFormat.parse(timeEndString).getTime();
-      timeStartLabel.setText("time=" + timeStart);
-      timeEndLabel.setText("time=" + timeEnd);
-      timeLengthLabel.setText("Time Length: " + timeFormat(timeEnd - timeStart));
-    } catch (ParseException e) {
-      e.printStackTrace();
-      JOptionPane.showMessageDialog(this, e.getMessage(), "Date Format Parse Error", JOptionPane.ERROR_MESSAGE);
-    }
+    //try {
+    long timeStart = dateModelStart.getDate().getTime();
+    long timeEnd = dateModelEnd.getDate().getTime();
+    timeStartLabel.setText("time=" + timeStart);
+    timeEndLabel.setText("time=" + timeEnd);
+    timeLengthLabel.setText(timeFormat(timeEnd - timeStart));
+    //} catch (ParseException e) {
+    //  e.printStackTrace();
+    //  JOptionPane.showMessageDialog(this, e.getMessage(), "Date Format Parse Error", JOptionPane.ERROR_MESSAGE);
+    //}
   }
 
   public static void main(String[] args) {
@@ -201,21 +228,32 @@ public class SessionWindow extends JFrame {
         JOptionPane.showMessageDialog(parent, "Activity Name must not be blank", "Invalid Activity Name", JOptionPane.ERROR_MESSAGE);
         return;
       }
-      String timeStartString = timeStartField.getText();
-      String timeEndString = timeEndField.getText();
-      try {
-        long timeStart = dateFormat.parse(timeStartString).getTime();
-        long timeEnd = dateFormat.parse(timeEndString).getTime();
-        CheckInActivity activity = new CheckInActivity(name, timeStart, timeEnd);
-        CheckInServer.getInstance().setActivity(activity);
-        CheckInServer.getInstance().print();
-        //setVisible(false);
-        dispose();
-      } catch (ParseException e1) {
-        e1.printStackTrace();
-        JOptionPane.showMessageDialog(parent, e1.getMessage(), "Date Format Parse Error", JOptionPane.ERROR_MESSAGE);
+      //try {
+      long timeStart = dateModelStart.getDate().getTime();
+      long timeEnd = dateModelEnd.getDate().getTime(); 
+      if (timeStart > timeEnd) {
+        JOptionPane.showMessageDialog(parent, "End Time must be greater than Start Time", "Invalid Time Range", JOptionPane.ERROR_MESSAGE);
+        return;
       }
+      CheckInActivity activity = new CheckInActivity(name, timeStart, timeEnd);
+      CheckInServer.getInstance().setActivity(activity);
+      CheckInServer.getInstance().print();
+      //setVisible(false);
+      dispose();
+      //} catch (ParseException e1) {
+      //  e1.printStackTrace();
+      //  JOptionPane.showMessageDialog(parent, e1.getMessage(), "Date Format Parse Error", JOptionPane.ERROR_MESSAGE);
+      //}
     }
 
+  }
+
+  private class CancelActionListener implements ActionListener {
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+      dispose();
+    }
+    
   }
 }

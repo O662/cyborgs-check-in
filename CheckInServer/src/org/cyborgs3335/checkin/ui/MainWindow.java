@@ -35,6 +35,7 @@ import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.WindowConstants;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
@@ -367,16 +368,53 @@ public class MainWindow extends JFrame {
     JMenuItem viewRecordsMenuItem = new JMenuItem("View records...");
     viewRecordsMenuItem.addActionListener(new ActionListener() {
 
+      JFrame frame = null;
+      JTable table = null;
+
       @Override
       public void actionPerformed(ActionEvent e) {
-        JTextArea recordArea = new JTextArea();
-        JTable table = new JTable(new SortedCheckInTableModel());
-        JScrollPane scrollPane = new JScrollPane(/*recordArea*/table);
-        table.setFillsViewportHeight(true);
-        scrollPane.setPreferredSize(new Dimension(880, 450));
-        String buffer = CheckInServer.getInstance().printToString();
-        recordArea.append(buffer);
-        JOptionPane.showMessageDialog(viewMenu, scrollPane, "Attendance Records", JOptionPane.PLAIN_MESSAGE);
+        if (frame != null && table != null) {
+          table.setModel(new SortedCheckInTableModel());
+          frame.setVisible(true);
+        } else {
+          JTextArea recordArea = new JTextArea();
+          table = new JTable(new SortedCheckInTableModel());
+          JScrollPane scrollPane = new JScrollPane(/*recordArea*/table);
+          table.setFillsViewportHeight(true);
+          scrollPane.setPreferredSize(new Dimension(880, 450));
+          String buffer = CheckInServer.getInstance().printToString();
+          recordArea.append(buffer);
+          //JOptionPane.showMessageDialog(viewMenu, scrollPane, "Attendance Records", JOptionPane.PLAIN_MESSAGE);
+          JPanel panel = new JPanel(new BorderLayout(5, 5));
+          JPanel bpanel = new JPanel();
+          JButton refreshButton = new JButton("Refresh");
+          refreshButton.setToolTipText("Refresh table contents");
+          refreshButton.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+              table.setModel(new SortedCheckInTableModel());;
+            }
+          });
+          JButton dismissButton = new JButton("Dismiss");
+          dismissButton.setToolTipText("Dismiss dialog");
+          dismissButton.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+              frame.dispose();
+            }
+          });
+          bpanel.add(refreshButton);
+          bpanel.add(dismissButton);
+          panel.add(scrollPane, BorderLayout.CENTER);
+          panel.add(bpanel, BorderLayout.SOUTH);
+          frame = new JFrame("Attendance Records");
+          frame.add(panel);
+          frame.pack();
+          frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+          frame.setVisible(true);
+        }
       }
     });
     viewMenu.add(viewRecordsMenuItem);
