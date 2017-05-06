@@ -663,9 +663,9 @@ public class MainWindow extends JFrame {
   }
 
   protected Icon getIcon() {
-    //String iconName = "resources/images/Cy-borgs-logo-402x402.png";
-    String iconName = "resources/images/Cy-borgs-logo-301x301.png";
-    //String iconName = "resources/images/Cy-borgs-logo-201x201.png";
+    //String iconName = "images/Cy-borgs-logo-402x402.png";
+    String iconName = "images/Cy-borgs-logo-301x301.png";
+    //String iconName = "images/Cy-borgs-logo-201x201.png";
     return new ImageIcon(getClass().getClassLoader()
         .getResource(iconName), "Cy-borgs logo");
   }
