@@ -31,6 +31,13 @@ dependencies {
     // JSSC
     //runtime files('lib/jssc-2.8.0.jar')
     compile files('lib/jssc-2.8.0.jar')
+
+    // Gson library for JSON
+    compile 'com.google.code.gson:gson:2.8.2'
+
+    // Apache Commons CLI
+    //compile 'commons-cli:commons-cli:1.5-SNAPSHOT'
+    compile 'commons-cli:commons-cli:1.4'
 }
 
 // Change project layout
