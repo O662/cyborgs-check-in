@@ -214,6 +214,16 @@ public class MainApp implements IDatabaseOperations {
   }
 
   @Override
+  public void saveDatabaseJson(String path) {
+    try {
+      CheckInServer.getInstance().dumpJson(path);
+      LOG.info("JSON save complete (" + path + ").");
+    } catch (IOException e) {
+      JOptionPane.showMessageDialog(parent, e.getMessage(), "JSON Save Error", JOptionPane.ERROR_MESSAGE);
+    }
+  }
+
+  @Override
   public void logDatabase(String message) {
     if (logWriter == null) {
       try {
@@ -315,7 +325,8 @@ public class MainApp implements IDatabaseOperations {
     //String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-main-app-test.dump";
     //String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-new-user-test.dump";
     //String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-2017-kickoff.dump";
-    String path = getAndCreateCheckInAppDir() + File.separator + "test1/check-in-server-2017-kickoff.dump";
+    //String path = getAndCreateCheckInAppDir() + File.separator + "test1/check-in-server-2017-kickoff.dump";
+    String path = getAndCreateCheckInAppDir() + File.separator + "test_createdatabase_check-in-server.dump";
     //final String path = "/tmp/check-in-server-new-user-test.dump";
     File dir = new File(path);
     if (dir.exists()) {

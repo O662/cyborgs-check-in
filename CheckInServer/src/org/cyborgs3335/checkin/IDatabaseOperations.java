@@ -40,6 +40,12 @@ public interface IDatabaseOperations {
   public void saveDatabaseHoursByDayCsv(String path);
 
   /**
+   * Save database to specified path.
+   * @param path path to output JSON file
+   */
+  public void saveDatabaseJson(String path);
+
+  /**
    * Print a message to the database logfile.
    * @param message message to print
    */

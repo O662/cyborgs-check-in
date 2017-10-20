@@ -5,6 +5,7 @@ import java.beans.PropertyChangeSupport;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -24,6 +25,10 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import org.cyborgs3335.checkin.CheckInEvent.Status;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.stream.JsonWriter;
 
 /**
  * Singleton check-in server using a map in memory as the "database".  The map
@@ -99,6 +104,30 @@ public class CheckInServer {
 
   public Person addUser(String firstName, String lastName) {
     long id = getNewId();
+    CheckInEvent event = null;
+    if (activity != null) {
+      event = new CheckInEvent(activity, Status.CheckedOut, 0);
+    } else {
+      event = new CheckInEvent(CheckInEvent.DEFAULT_ACTIVITY, Status.CheckedOut, 0);
+    }
+    Person person = new Person(id, firstName, lastName);
+    AttendanceRecord record = new AttendanceRecord(person);
+    record.getEventList().add(event);
+    map.put(id, record);
+    return person;
+  }
+
+  /**
+   * Add a user with a predefined ID.  A null user is returned if id already exists.
+   * @param id predefined ID
+   * @param firstName first name
+   * @param lastName last name
+   * @return added user, or null if id already exists
+   */
+  /* package */Person addUserWithId(long id, String firstName, String lastName) {
+    if (map.containsKey(id)) {
+      return null;
+    }
     CheckInEvent event = null;
     if (activity != null) {
       event = new CheckInEvent(activity, Status.CheckedOut, 0);
@@ -510,6 +539,43 @@ public class CheckInServer {
         }
       } 
     }
+  }
+
+  /**
+   * Dump "database" to filesystem.
+   * @param path JSON file to save "database" to
+   * @throws IOException on I/O error dumping "database" to filesystem
+   */
+  /*package*/void dumpJson(String path) throws IOException {
+    File file = new File(path);
+    if (!file.isFile()) {
+      throw new IOException("Path " + path + " must be a file!");
+    }
+    dumpAttendanceRecordsJson(path);
+  }
+
+  private void dumpAttendanceRecordsJson(String path) throws IOException {
+    FileWriter fw = new FileWriter(path);
+    //Gson gson = new Gson();
+    // TODO nest activity and map into a top-level json object
+    //gson.toJson(activity, fw);
+    //synchronized (map) {
+    //  gson.toJson(map, fw);
+    //}
+    JsonWriter writer = new JsonWriter(fw);
+    //Gson gson = new Gson();
+    Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    writer.setIndent("  ");
+    writer.beginObject();
+    //writer.name("activity").value(gson.toJson(activity));
+    writer.name("activity").jsonValue(gson.toJson(activity));
+    synchronized (map) {
+      //writer.name("map").value(gson.toJson(map));
+      writer.name("map").jsonValue(gson.toJson(map));
+    }
+    writer.endObject();
+    writer.close();
+    fw.close();
   }
 
   private String floatArrayToString(float[] hoursByDay, String fmt) {
