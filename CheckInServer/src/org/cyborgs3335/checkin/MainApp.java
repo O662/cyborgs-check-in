@@ -180,6 +180,7 @@ public class MainApp implements IDatabaseOperations {
     }
     try {
       server.dump(newPath);
+      server.dumpJson(newPath);
       if (updatePath) {
         path = newPath;
       }

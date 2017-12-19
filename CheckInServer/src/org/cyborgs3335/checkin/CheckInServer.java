@@ -45,6 +45,8 @@ public class CheckInServer {
 
   public static final String DB_ATTENDANCE_RECORDS = "attendance-records.db";
 
+  public static final String JSON_ATTENDANCE_RECORDS = "attendance-records.json";
+
   private final Map<Long, AttendanceRecord> map = Collections.synchronizedMap(new HashMap<Long, AttendanceRecord>());
 
   private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
@@ -289,6 +291,10 @@ public class CheckInServer {
         }
       } 
     }
+  }
+
+  /*package */void loadJson(String path) {
+    // TODO implement me!!!
   }
 
   /**
@@ -542,16 +548,16 @@ public class CheckInServer {
   }
 
   /**
-   * Dump "database" to filesystem.
-   * @param path JSON file to save "database" to
+   * Dump "database" to filesystem in JSON format.
+   * @param path directory to contain "database"
    * @throws IOException on I/O error dumping "database" to filesystem
    */
   /*package*/void dumpJson(String path) throws IOException {
     File file = new File(path);
-    if (!file.isFile()) {
-      throw new IOException("Path " + path + " must be a file!");
+    if (!file.isDirectory()) {
+      throw new IOException("Path " + path + " must be a directory!");
     }
-    dumpAttendanceRecordsJson(path);
+    dumpAttendanceRecordsJson(path + File.separator + JSON_ATTENDANCE_RECORDS);
   }
 
   private void dumpAttendanceRecordsJson(String path) throws IOException {
