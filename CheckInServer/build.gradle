@@ -19,6 +19,7 @@ repositories {
     // Use jcenter for resolving your dependencies.
     // You can declare any Maven/Ivy/file repository here.
     jcenter()
+    //mavenCentral()
 }
 
 dependencies {
@@ -38,6 +39,13 @@ dependencies {
     // Apache Commons CLI
     //compile 'commons-cli:commons-cli:1.5-SNAPSHOT'
     compile 'commons-cli:commons-cli:1.4'
+
+    // OkHttp (square.github.io/OkHttp)
+    compile 'com.squareup.okhttp3:okhttp:3.9.1'
+
+    // Jetty
+    //compile 'org.eclipse.jetty:jetty-distribution:9.4.5.v20170502'
+    compile 'org.eclipse.jetty:jetty-server:9.4.5.v20170502'
 }
 
 // Change project layout
@@ -62,4 +70,4 @@ sourceSets {
 
 // Define the main class for the application
 mainClassName = 'org.cyborgs3335.checkin.MainApp'
-
+//mainClassName = 'org.macy.examples.jetty.SimpleJettyServer'
