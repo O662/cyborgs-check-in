@@ -17,9 +17,9 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-public class Messenger implements IMessenger {
+public class HttpMessenger implements IMessenger {
 
-  private static final Logger LOG = Logger.getLogger(Messenger.class.getName());
+  private static final Logger LOG = Logger.getLogger(HttpMessenger.class.getName());
 
   public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
@@ -27,7 +27,7 @@ public class Messenger implements IMessenger {
 
   private final String serverUrl;
 
-  public Messenger(String serverUrl) {
+  public HttpMessenger(String serverUrl) {
     client = new OkHttpClient();
     this.serverUrl = serverUrl;
   }
@@ -163,7 +163,7 @@ public class Messenger implements IMessenger {
   }
 
   public static void main(String[] args) {
-    IMessenger m = new Messenger("http://localhost:8080/attendance/request");
+    IMessenger m = new HttpMessenger("http://localhost:8080/attendance/request");
     try {
       RequestResponse response = m.checkIn(1);
       logResponse(response, "checkin");
