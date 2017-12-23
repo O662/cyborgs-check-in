@@ -10,8 +10,8 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.cyborgs3335.checkin.messenger.Messenger.Action;
-import org.cyborgs3335.checkin.messenger.Messenger.RequestResponse;
+import org.cyborgs3335.checkin.messenger.IMessenger.Action;
+import org.cyborgs3335.checkin.messenger.IMessenger.RequestResponse;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 

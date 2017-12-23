@@ -17,15 +17,11 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-public class Messenger {
+public class Messenger implements IMessenger {
 
   private static final Logger LOG = Logger.getLogger(Messenger.class.getName());
 
   public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-
-  public static enum Action { CheckIn, CheckOut }
-
-  public static enum RequestResponse { Ok, UnknownId, FailedRequest }
 
   private final OkHttpClient client;
 
@@ -36,10 +32,18 @@ public class Messenger {
     this.serverUrl = serverUrl;
   }
 
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#checkIn(long)
+   */
+  @Override
   public RequestResponse checkIn(long id) throws IOException {
     return sendRequest(id, Action.CheckIn);
   }
 
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#checkOut(long)
+   */
+  @Override
   public RequestResponse checkOut(long id) throws IOException {
     return sendRequest(id, Action.CheckOut);
   }
@@ -159,7 +163,7 @@ public class Messenger {
   }
 
   public static void main(String[] args) {
-    Messenger m = new Messenger("http://localhost:8080/attendance/request");
+    IMessenger m = new Messenger("http://localhost:8080/attendance/request");
     try {
       RequestResponse response = m.checkIn(1);
       logResponse(response, "checkin");
