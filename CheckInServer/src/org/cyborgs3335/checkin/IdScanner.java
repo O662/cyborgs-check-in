@@ -1,8 +1,9 @@
 package org.cyborgs3335.checkin;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Scanner;
+
+import org.cyborgs3335.checkin.server.local.LocalMessenger;
 
 public class IdScanner {
 
@@ -23,18 +24,9 @@ public class IdScanner {
   }
 
   public static void main(String[] args) throws IOException {
-    CheckInServer server = CheckInServer.getInstance();
     String path = "/tmp/check-in-server2.dump";
-    File dir = new File(path);
-    if (dir.exists()) {
-      server.load(path);
-    } else {
-      boolean success = dir.mkdirs();
-      if (!success) {
-        throw new RuntimeException("Could not create directory " + path + "for saving database!");
-      }
-    }
-    server.print();
+    LocalMessenger messenger = new LocalMessenger(path);
+    messenger.print();
 
     IdScanner idScanner = new IdScanner(new CheckInClient());
     while (true) {
@@ -44,7 +36,7 @@ public class IdScanner {
         System.out.println("Exiting...");
         break;
       } else if (id == -2) {
-        server.print();
+        messenger.print();
         continue;
       }
       try {
@@ -59,8 +51,8 @@ public class IdScanner {
       }
     }
 
-    server.print();
-    server.dump(path);
+    messenger.print();
+    messenger.save();
   }
 
 }

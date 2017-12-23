@@ -29,7 +29,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.cyborgs3335.checkin.CheckInActivity;
-import org.cyborgs3335.checkin.CheckInServer;
+import org.cyborgs3335.checkin.server.local.CheckInServer;
 
 public class SessionWindow extends JFrame {
 

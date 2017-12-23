@@ -42,11 +42,11 @@ import javax.swing.text.BadLocationException;
 
 import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent;
-import org.cyborgs3335.checkin.CheckInServer;
 import org.cyborgs3335.checkin.IDatabaseOperations;
 import org.cyborgs3335.checkin.MainApp;
 import org.cyborgs3335.checkin.Person;
 import org.cyborgs3335.checkin.UnknownUserException;
+import org.cyborgs3335.checkin.server.local.CheckInServer;
 
 public class MainWindow extends JFrame {
 

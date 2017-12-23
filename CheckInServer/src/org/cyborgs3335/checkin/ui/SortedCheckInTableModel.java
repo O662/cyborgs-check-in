@@ -14,7 +14,7 @@ import org.cyborgs3335.checkin.ActivityAttendanceRecord;
 import org.cyborgs3335.checkin.AttendanceRecord;
 import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent;
-import org.cyborgs3335.checkin.CheckInServer;
+import org.cyborgs3335.checkin.server.local.CheckInServer;
 
 public class SortedCheckInTableModel extends AbstractTableModel {
 

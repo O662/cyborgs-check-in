@@ -22,9 +22,10 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
-import java.io.File;
+import org.cyborgs3335.checkin.server.local.CheckInServer;
+import org.cyborgs3335.checkin.server.local.LocalMessenger;
+
 import java.io.IOException;
-import java.util.Calendar;
 import java.util.Date;
 
 
@@ -39,8 +40,10 @@ public class NewUserApp extends JFrame {
   private static final long serialVersionUID = 1926718100094660447L;
   private final DateFormat dateFormat;
   private String path;
+  private final LocalMessenger messenger;
 
-  public NewUserApp() {
+  public NewUserApp(LocalMessenger messenger) {
+    this.messenger = messenger;
     //dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
     dateFormat = new SimpleDateFormat();
     setSize(600, 400);
@@ -202,10 +205,9 @@ public class NewUserApp extends JFrame {
   }
 
   private void exitApp() {
-    CheckInServer server = CheckInServer.getInstance();
-    server.print();
+    messenger.print();
     try {
-      server.dump(path);
+      messenger.save(path);
     } catch (IOException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
@@ -224,15 +226,7 @@ public class NewUserApp extends JFrame {
     //String path = "/tmp/check-in-server-new-user-"+System.currentTimeMillis()+".dump";
     //String path = "/tmp/check-in-server-new-user.dump";
     final String path = "/tmp/check-in-server-new-user-test.dump";
-    File dir = new File(path);
-    if (dir.exists()) {
-      server.load(path);
-    } else {
-      boolean success = dir.mkdirs();
-      if (!success) {
-        throw new RuntimeException("Could not create directory " + path + "for saving database!");
-      }
-    }
+    final LocalMessenger messenger = new LocalMessenger(path);
 
     long timeStart = System.currentTimeMillis();
     //long timeEnd = timeStart + 60L*60L*1000L;
@@ -244,15 +238,15 @@ public class NewUserApp extends JFrame {
 
       @Override
       public void run() {
-        NewUserApp app = new NewUserApp();
+        NewUserApp app = new NewUserApp(messenger);
         app.setPath(path);
       }
     });
 
-    server.print();
+    messenger.print();
     scanIdsTerminal();
-    server.print();
-    server.dump(path);
+    messenger.print();
+    messenger.save();
 
   }
 

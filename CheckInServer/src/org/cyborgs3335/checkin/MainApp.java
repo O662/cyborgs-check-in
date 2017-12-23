@@ -16,6 +16,8 @@ import java.util.logging.SimpleFormatter;
 
 import javax.swing.JOptionPane;
 
+import org.cyborgs3335.checkin.server.local.CheckInServer;
+import org.cyborgs3335.checkin.server.local.LocalMessenger;
 import org.cyborgs3335.checkin.ui.MainWindow;
 
 import jssc.SerialPortException;
@@ -28,16 +30,23 @@ import jssc.SerialPortException;
  */
 public class MainApp implements IDatabaseOperations {
 
+  // TODO 1. Move loading into server
+  // TODO 2. Move saving into server
+  // TODO 2.1 Push events onto a queue
+  // TODO 2.2 Save all events to disk as they come in, multiple events at a time if queued up
+
   private static final Logger LOG = Logger.getLogger(MainApp.class.getPackage().getName());
 
   public static final String CHECK_IN_APP_DIR = "CyborgsCheckIn";
 
+  private final LocalMessenger localMessenger;
   private final DateFormat dateFormat;
   private String path;
   private FileWriter logWriter = null;
   private Component parent = null;
 
-  public MainApp() {
+  public MainApp(LocalMessenger messenger) {
+    localMessenger = messenger;
     dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
     //dateFormat = new SimpleDateFormat();
   }
@@ -173,14 +182,13 @@ public class MainApp implements IDatabaseOperations {
 
   @Override
   public synchronized void saveDatabase(String newPath, boolean updatePath) {
-    CheckInServer server = CheckInServer.getInstance();
     if (LOG.isLoggable(Level.FINE)) {
-      server.print();
-      logDatabase(server.printToString());
+      localMessenger.print();
+      logDatabase(localMessenger.printToString());
     }
     try {
-      server.dump(newPath);
-      server.dumpJson(newPath);
+      localMessenger.save(newPath);
+      localMessenger.saveJson(newPath);
       if (updatePath) {
         path = newPath;
       }
@@ -195,7 +203,7 @@ public class MainApp implements IDatabaseOperations {
   @Override
   public void saveDatabaseCsv(String path) {
     try {
-      CheckInServer.getInstance().dumpCsv(path);
+      localMessenger.saveCsv(path);
       LOG.info("CSV save complete (" + path + ").");
     } catch (IOException e) {
       JOptionPane.showMessageDialog(parent, e.getMessage(), "CSV Save Error", JOptionPane.ERROR_MESSAGE);
@@ -206,7 +214,7 @@ public class MainApp implements IDatabaseOperations {
   @Override
   public void saveDatabaseHoursByDayCsv(String path) {
     try {
-      CheckInServer.getInstance().dumpHoursByDayCsv(path);
+      localMessenger.saveHoursByDayCsv(path);
       LOG.info("CSV save complete (" + path + ").");
     } catch (IOException e) {
       JOptionPane.showMessageDialog(parent, e.getMessage(), "CSV Save Error", JOptionPane.ERROR_MESSAGE);
@@ -217,7 +225,7 @@ public class MainApp implements IDatabaseOperations {
   @Override
   public void saveDatabaseJson(String path) {
     try {
-      CheckInServer.getInstance().dumpJson(path);
+      localMessenger.saveJson(path);
       LOG.info("JSON save complete (" + path + ").");
     } catch (IOException e) {
       JOptionPane.showMessageDialog(parent, e.getMessage(), "JSON Save Error", JOptionPane.ERROR_MESSAGE);
@@ -322,40 +330,22 @@ public class MainApp implements IDatabaseOperations {
     LOG.addHandler(fh);
     fh.setFormatter(new SimpleFormatter());
 
-    CheckInServer server = CheckInServer.getInstance();
-    //String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-main-app-test.dump";
-    //String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-new-user-test.dump";
-    //String path = getAndCreateCheckInAppDir() + File.separator + "check-in-server-2017-kickoff.dump";
-    //String path = getAndCreateCheckInAppDir() + File.separator + "test1/check-in-server-2017-kickoff.dump";
     String path = getAndCreateCheckInAppDir() + File.separator + "test_createdatabase_check-in-server.dump";
-    //final String path = "/tmp/check-in-server-new-user-test.dump";
-    File dir = new File(path);
-    if (dir.exists()) {
-      //System.out.println("Loading attendance records from " + path);
-      LOG.info("Loading attendance records from " + path);
-      server.load(path);
-    } else {
-      //System.out.println("No attendance records found at path " + path + ". Creating directory for saving database.");
-      LOG.info("No attendance records found at path " + path + ". Creating directory for saving database.");
-      boolean success = dir.mkdirs();
-      if (!success) {
-        throw new RuntimeException("Could not create directory " + path + "for saving database!");
-      }
-    }
+    LocalMessenger localMessenger = new LocalMessenger(path);
 
-    MainApp app = new MainApp();
+    MainApp app = new MainApp(localMessenger);
     app.setPath(path);
 
     long timeStart = System.currentTimeMillis();
     long timeEnd = timeStart + 60L*60L*1000L;
-    if (server.getActivity() == null) {
+    if (localMessenger.getActivity() == null) {
       CheckInActivity activity = new CheckInActivity("Default", timeStart, timeEnd);
-      server.setActivity(activity);
+      localMessenger.setActivity(activity);
     }
 
     if (LOG.isLoggable(Level.FINE)) {
-      server.print();
-      app.logDatabase(server.printToString());
+      localMessenger.print();
+      app.logDatabase(localMessenger.printToString());
     }
     app.runAutoSave(path + "_auto_save", 60L * 1000L, 120L * 1000L, true);
     app.scanIdsUi();

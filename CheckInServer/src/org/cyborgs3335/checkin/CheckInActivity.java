@@ -60,4 +60,24 @@ public class CheckInActivity implements Serializable {
     DateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH:mm");
     return name + "-" + format.format(new Date(timeStart)) + "-" + format.format(new Date(timeEnd));
   }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == null) {
+      return false;
+    }
+    if (!(obj instanceof CheckInActivity)) {
+      return false;
+    }
+    CheckInActivity activity = (CheckInActivity) obj;
+    return name.equals(activity.name) && timeStart == activity.timeStart
+        && timeEnd == activity.timeEnd;
+  }
+
+  @Override
+  public int hashCode() {
+    long hashLong = (long) name.hashCode() + (long) Long.hashCode(timeStart)
+        + (long) Long.hashCode(timeEnd);
+    return (int) hashLong;
+  }
 }

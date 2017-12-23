@@ -1,4 +1,4 @@
-package org.cyborgs3335.checkin;
+package org.cyborgs3335.checkin.server.local;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,6 +9,10 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Set;
 
+import org.cyborgs3335.checkin.AttendanceRecord;
+import org.cyborgs3335.checkin.CheckInActivity;
+import org.cyborgs3335.checkin.CheckInEvent;
+
 import jssc.SerialPortException;
 
 /**
@@ -17,7 +21,7 @@ import jssc.SerialPortException;
  * @author brian
  *
  */
-public class DumpDatabaseIds {
+public class DumpDatabase {
 
   /**
    * Print the last check-in event for each attendance record.
@@ -26,24 +30,23 @@ public class DumpDatabaseIds {
     CheckInActivity activity = server.getActivity();
     DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
     if (activity != null) {
-      //activity.print(dateFormat);
+      activity.print(dateFormat);
     }
     Set<Long> set = server.getIdSet();
     synchronized (set) {
       for (Long id : set) {
         AttendanceRecord record = server.getAttendanceRecord(id);
-        //System.out.print("id " + id + " \tname " + record.getPerson() + " \tevents: ");
-        System.out.println(id + " " + record.getPerson());
-        //ArrayList<CheckInEvent> list = record.getEventList();
-        //for (CheckInEvent event : list) {
-        //  if (event.getActivity() != null) {
-        //    System.out.print(" " + event.getActivity().getName());
-        //  } else {
-        //    System.out.print(" " + event.getActivity());
-        //  }
-        //  System.out.print(" " + event.getStatus() + " " + dateFormat.format(new Date(event.getTimeStamp())));
-        //}
-        //System.out.println();
+        System.out.print("id " + id + " \tname " + record.getPerson() + " \tevents: ");
+        ArrayList<CheckInEvent> list = record.getEventList();
+        for (CheckInEvent event : list) {
+          if (event.getActivity() != null) {
+            System.out.print(" " + event.getActivity().getName());
+          } else {
+            System.out.print(" " + event.getActivity());
+          }
+          System.out.print(" " + event.getStatus() + " " + dateFormat.format(new Date(event.getTimeStamp())));
+        }
+        System.out.println();
       }
     }
   }
@@ -55,8 +58,7 @@ public class DumpDatabaseIds {
    */
   public static void main(String[] args) throws IOException {
     //String path = (args.length == 1) ? path = args[0] : "/tmp/check-in-server2-test.dump";
-    //String path = (args.length == 1) ? path = args[0] : "/home/brian/CyborgsCheckIn/check-in-server-2017-kickoff.dump";
-    String path = (args.length == 1) ? path = args[0] : "/home/brian/CyborgsCheckIn/test1/check-in-server-2017-kickoff.dump";
+    String path = (args.length == 1) ? path = args[0] : "/home/brian/CyborgsCheckIn/check-in-server-2017-kickoff.dump";
 
     CheckInServer server = CheckInServer.getInstance();
     File dir = new File(path);

@@ -1,5 +1,7 @@
 package org.cyborgs3335.checkin;
 
+import org.cyborgs3335.checkin.server.local.CheckInServer;
+
 public class CheckInClient {
 
   private final CheckInServer server;

@@ -5,6 +5,9 @@ import java.io.Reader;
 import java.io.StringWriter;
 import java.util.logging.Logger;
 
+import org.cyborgs3335.checkin.CheckInActivity;
+import org.cyborgs3335.checkin.CheckInEvent.Status;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
@@ -46,6 +49,33 @@ public class HttpMessenger implements IMessenger {
   @Override
   public RequestResponse checkOut(long id) throws IOException {
     return sendRequest(id, Action.CheckOut);
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#getCheckInStatus(long)
+   */
+  @Override
+  public Status getCheckInStatus(long id) throws IOException {
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#setActivity(org.cyborgs3335.checkin.CheckInActivity)
+   */
+  @Override
+  public void setActivity(CheckInActivity activity) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#getActivity()
+   */
+  @Override
+  public CheckInActivity getActivity() {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("not implemented");
+    //return null;
   }
 
   private RequestResponse sendRequest(long id, Action action) throws IOException {
@@ -176,4 +206,5 @@ public class HttpMessenger implements IMessenger {
       e.printStackTrace();
     }
   }
+
 }

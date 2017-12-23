@@ -1,4 +1,4 @@
-package org.cyborgs3335.checkin;
+package org.cyborgs3335.checkin.server.local;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -17,6 +17,10 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.cyborgs3335.checkin.AttendanceRecord;
+import org.cyborgs3335.checkin.CheckInActivity;
+import org.cyborgs3335.checkin.CheckInEvent;
+import org.cyborgs3335.checkin.Person;
 
 
 /**

@@ -1,4 +1,4 @@
-package org.cyborgs3335.checkin;
+package org.cyborgs3335.checkin.server.local;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -24,6 +24,11 @@ import java.util.Random;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import org.cyborgs3335.checkin.AttendanceRecord;
+import org.cyborgs3335.checkin.CheckInActivity;
+import org.cyborgs3335.checkin.CheckInEvent;
+import org.cyborgs3335.checkin.Person;
+import org.cyborgs3335.checkin.UnknownUserException;
 import org.cyborgs3335.checkin.CheckInEvent.Status;
 
 import com.google.gson.Gson;
