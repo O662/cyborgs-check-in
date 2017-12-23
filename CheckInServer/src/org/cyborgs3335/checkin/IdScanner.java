@@ -3,14 +3,15 @@ package org.cyborgs3335.checkin;
 import java.io.IOException;
 import java.util.Scanner;
 
+import org.cyborgs3335.checkin.messenger.IMessenger;
 import org.cyborgs3335.checkin.server.local.LocalMessenger;
 
 public class IdScanner {
 
-  private final CheckInClient client;
+  private final IMessenger client;
   private final Scanner scanner;
 
-  public IdScanner(CheckInClient client) {
+  public IdScanner(IMessenger client) {
     this.client = client;
     scanner = new Scanner(System.in);
   }
@@ -19,8 +20,8 @@ public class IdScanner {
     return scanner.nextLong();
   }
 
-  public boolean sendId(long id) throws UnknownUserException {
-    return client.accept(id);
+  public CheckInEvent.Status sendId(long id) throws IOException, UnknownUserException {
+    return client.toggleCheckInStatus(id);
   }
 
   public static void main(String[] args) throws IOException {
@@ -28,7 +29,7 @@ public class IdScanner {
     LocalMessenger messenger = new LocalMessenger(path);
     messenger.print();
 
-    IdScanner idScanner = new IdScanner(new CheckInClient());
+    IdScanner idScanner = new IdScanner(messenger);
     while (true) {
       System.out.println("Enter ID (-1 to quit, -2 to print): ");
       long id = idScanner.readId();
@@ -40,11 +41,17 @@ public class IdScanner {
         continue;
       }
       try {
-        boolean checkIn = idScanner.sendId(id);
-        if (checkIn) {
-          System.out.println("Check in ID " + id);
-        } else {
-          System.out.println("Check out ID " + id);
+        CheckInEvent.Status status = idScanner.sendId(id);
+        switch (status) {
+          case CheckedIn:
+            System.out.println("Check in ID " + id);
+            break;
+          case CheckedOut:
+            System.out.println("Check out ID " + id);
+            break;
+          default:
+            System.out.println("Unknown status: " + status);
+            break;
         }
       } catch (UnknownUserException e) {
         System.out.println("Unknown user ID: " + id + "\nID will need to be added before check in is valid.");

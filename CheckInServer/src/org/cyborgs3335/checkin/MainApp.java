@@ -16,6 +16,7 @@ import java.util.logging.SimpleFormatter;
 
 import javax.swing.JOptionPane;
 
+import org.cyborgs3335.checkin.messenger.IMessenger;
 import org.cyborgs3335.checkin.server.local.CheckInServer;
 import org.cyborgs3335.checkin.server.local.LocalMessenger;
 import org.cyborgs3335.checkin.ui.MainWindow;
@@ -53,10 +54,11 @@ public class MainApp implements IDatabaseOperations {
 
   /**
    * Scan IDs from Arduino via serial port, spawning task in a thread.
+   * @param messenger messenger to handle checkin events
    * @param portName name of serial port (e.g., /dev/ttyACM0)
    * @param daemonThread if true, make spawned task thread a daemon thread
    */
-  public static void scanIdsSerial(final String portName, boolean daemonThread) {
+  public static void scanIdsSerial(final IMessenger messenger, final String portName, boolean daemonThread) {
     SerialComm.printSerialPortNames();
     Thread t = new Thread(new Runnable() {
 
@@ -68,7 +70,6 @@ public class MainApp implements IDatabaseOperations {
         } catch (SerialPortException e) {
           throw new RuntimeException("Caught serial port exception.  Exiting...", e);
         }
-        CheckInClient checkInClient = new CheckInClient();
         while (true) {
           String readLine = comm.readLine();
           if (readLine.startsWith("Firmware Version") || readLine.startsWith("Scan PICC to see UID")) {
@@ -89,17 +90,26 @@ public class MainApp implements IDatabaseOperations {
           }
           System.out.println("Serial Port Read: \"" + readLine + "\" + value " + value + " id " + id);
           try {
-            boolean checkIn = checkInClient.accept(id);
-            if (checkIn) {
-              System.out.println("Check in ID " + id);
-              comm.writeString("" + 1);
-            } else {
-              System.out.println("Check out ID " + id);
-              comm.writeString("" + 2);
+            CheckInEvent.Status status = messenger.toggleCheckInStatus(id);
+            switch (status) {
+              case CheckedIn:
+                System.out.println("Check in ID " + id);
+                comm.writeString("" + 1);
+                break;
+              case CheckedOut:
+                System.out.println("Check out ID " + id);
+                comm.writeString("" + 2);
+                break;
+              default:
+                System.out.println("Unknown status: " + status);
+                break;
             }
           } catch (UnknownUserException e) {
             System.out.println("Unknown user ID: " + id + "\nID will need to be added before check in is valid.");
             comm.writeString("" + 3);
+          } catch (IOException e) {
+            System.out.println("Caught unexpected IOException for id: " + id + ".");
+            comm.writeString("" + 4);
           }
         }
       }}, "SerialPortReader");
@@ -110,9 +120,11 @@ public class MainApp implements IDatabaseOperations {
   /**
    * Scan IDs from terminal, with special IDs for exiting (-1), and printing
    * the current "database" (-2).
+   * @param messenger
+   * @throws IOException 
    */
-  public static void scanIdsTerminal() {
-    IdScanner idScanner = new IdScanner(new CheckInClient());
+  public static void scanIdsTerminal(IMessenger messenger) throws IOException {
+    IdScanner idScanner = new IdScanner(messenger);
     while (true) {
       System.out.println("Enter ID (-1 to quit, -2 to print): ");
       long id = idScanner.readId();
@@ -124,11 +136,17 @@ public class MainApp implements IDatabaseOperations {
         continue;
       }
       try {
-        boolean checkIn = idScanner.sendId(id);
-        if (checkIn) {
-          System.out.println("Check in ID " + id);
-        } else {
-          System.out.println("Check out ID " + id);
+        CheckInEvent.Status status = idScanner.sendId(id);
+        switch (status) {
+          case CheckedIn:
+            System.out.println("Check in ID " + id);
+            break;
+          case CheckedOut:
+            System.out.println("Check out ID " + id);
+            break;
+          default:
+            System.out.println("Unknown status: " + status);
+            break;
         }
       } catch (UnknownUserException e) {
         System.out.println("Unknown user ID: " + id + "\nID will need to be added before check in is valid.");
@@ -350,9 +368,9 @@ public class MainApp implements IDatabaseOperations {
     app.runAutoSave(path + "_auto_save", 60L * 1000L, 120L * 1000L, true);
     app.scanIdsUi();
     if (startSerialPortScan) {
-      scanIdsSerial(portName, true);
+      scanIdsSerial(localMessenger, portName, true);
     }
-    scanIdsTerminal();
+    scanIdsTerminal(localMessenger);
     app.exitApp();
     //server.print();
     //server.dump(path);

@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 import org.cyborgs3335.checkin.AttendanceRecord;
 import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent.Status;
+import org.cyborgs3335.checkin.UnknownUserException;
 import org.cyborgs3335.checkin.messenger.IMessenger;
 
 
@@ -48,7 +49,7 @@ public class LocalMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#checkIn(long)
    */
   @Override
-  public RequestResponse checkIn(long id) throws IOException {
+  public RequestResponse checkIn(long id) throws IOException, UnknownUserException {
     return id > 0 ? RequestResponse.Ok : RequestResponse.UnknownId;
   }
 
@@ -56,15 +57,23 @@ public class LocalMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#checkOut(long)
    */
   @Override
-  public RequestResponse checkOut(long id) throws IOException {
+  public RequestResponse checkOut(long id) throws IOException, UnknownUserException {
     return id > 0 ? RequestResponse.Ok : RequestResponse.UnknownId;
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#toggleCheckInStatus(long)
+   */
+  @Override
+  public Status toggleCheckInStatus(long id) throws IOException, UnknownUserException {
+    return server.accept(id) ? Status.CheckedIn : Status.CheckedOut;
   }
 
   /* (non-Javadoc)
    * @see org.cyborgs3335.checkin.messenger.IMessenger#getCheckInStatus(long)
    */
   @Override
-  public Status getCheckInStatus(long id) throws IOException {
+  public Status getCheckInStatus(long id) throws IOException, UnknownUserException {
     AttendanceRecord record = server.getAttendanceRecord(id);
     if (record == null) {
       throw new IOException("No attendance record found for id " + id);
@@ -138,7 +147,7 @@ public class LocalMessenger implements IMessenger {
    * @param args
    * @throws IOException 
    */
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws IOException, UnknownUserException {
     IMessenger m = new LocalMessenger("/tmp/check-in-server.db");
     try {
       RequestResponse response = m.checkIn(1);

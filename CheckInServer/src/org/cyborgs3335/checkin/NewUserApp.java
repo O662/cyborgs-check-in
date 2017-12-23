@@ -1,13 +1,10 @@
 package org.cyborgs3335.checkin;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
 import javax.swing.Box;
@@ -22,6 +19,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
+import org.cyborgs3335.checkin.messenger.IMessenger;
 import org.cyborgs3335.checkin.server.local.CheckInServer;
 import org.cyborgs3335.checkin.server.local.LocalMessenger;
 
@@ -174,9 +172,11 @@ public class NewUserApp extends JFrame {
   /**
    * Scan IDs from terminal, with special IDs for exiting (-1), and printing
    * the current "database" (-2).
+   * @param messenger
+   * @throws IOException 
    */
-  public static void scanIdsTerminal() {
-    IdScanner idScanner = new IdScanner(new CheckInClient());
+  public static void scanIdsTerminal(IMessenger messenger) throws IOException {
+    IdScanner idScanner = new IdScanner(messenger);
     while (true) {
       System.out.println("Enter ID (-1 to quit, -2 to print): ");
       long id = idScanner.readId();
@@ -188,11 +188,17 @@ public class NewUserApp extends JFrame {
         continue;
       }
       try {
-        boolean checkIn = idScanner.sendId(id);
-        if (checkIn) {
-          System.out.println("Check in ID " + id);
-        } else {
-          System.out.println("Check out ID " + id);
+        CheckInEvent.Status status = idScanner.sendId(id);
+        switch (status) {
+          case CheckedIn:
+            System.out.println("Check in ID " + id);
+            break;
+          case CheckedOut:
+            System.out.println("Check out ID " + id);
+            break;
+          default:
+            System.out.println("Unknown status: " + status);
+            break;
         }
       } catch (UnknownUserException e) {
         System.out.println("Unknown user ID: " + id + "\nID will need to be added before check in is valid.");
@@ -222,7 +228,6 @@ public class NewUserApp extends JFrame {
    * @throws IOException
    */
   public static void main(String[] args) throws IOException {
-    CheckInServer server = CheckInServer.getInstance();
     //String path = "/tmp/check-in-server-new-user-"+System.currentTimeMillis()+".dump";
     //String path = "/tmp/check-in-server-new-user.dump";
     final String path = "/tmp/check-in-server-new-user-test.dump";
@@ -232,7 +237,7 @@ public class NewUserApp extends JFrame {
     //long timeEnd = timeStart + 60L*60L*1000L;
     long timeEnd = timeStart + 5L*60L*60L*1000L;
     CheckInActivity activity = new CheckInActivity("Default", timeStart, timeEnd);
-    server.setActivity(activity);
+    messenger.setActivity(activity);
 
     EventQueue.invokeLater(new Runnable() {
 
@@ -244,7 +249,7 @@ public class NewUserApp extends JFrame {
     });
 
     messenger.print();
-    scanIdsTerminal();
+    scanIdsTerminal(messenger);
     messenger.print();
     messenger.save();
 

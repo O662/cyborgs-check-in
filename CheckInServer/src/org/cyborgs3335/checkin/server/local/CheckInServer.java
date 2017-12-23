@@ -181,6 +181,19 @@ public class CheckInServer {
   }
 
   /**
+   * Query whether an id is known to the server.
+   * @param id of user to query
+   * @return true if the id exists
+   */
+  public boolean containsId(long id) {
+    boolean retval = false;
+    synchronized (map) {
+      retval = map.containsKey(id);
+    }
+    return retval;
+  }
+
+  /**
    * Accept a check in or check out.
    * @param id id of user to check in or out
    * @return true if check in, false if check out
@@ -627,7 +640,11 @@ public class CheckInServer {
   }
 
   public AttendanceRecord getAttendanceRecord(long id) {
-    return map.get(id);
+    AttendanceRecord record = null;
+    synchronized (map) {
+      record = map.get(id);
+    }
+    return record;
   }
 
   public void checkOutAll() {

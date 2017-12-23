@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 
 import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent.Status;
+import org.cyborgs3335.checkin.UnknownUserException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -39,7 +40,7 @@ public class HttpMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#checkIn(long)
    */
   @Override
-  public RequestResponse checkIn(long id) throws IOException {
+  public RequestResponse checkIn(long id) throws IOException, UnknownUserException {
     return sendRequest(id, Action.CheckIn);
   }
 
@@ -47,15 +48,23 @@ public class HttpMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#checkOut(long)
    */
   @Override
-  public RequestResponse checkOut(long id) throws IOException {
+  public RequestResponse checkOut(long id) throws IOException, UnknownUserException {
     return sendRequest(id, Action.CheckOut);
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#toggleCheckInStatus(long)
+   */
+  @Override
+  public Status toggleCheckInStatus(long id) throws IOException, UnknownUserException {
+    throw new UnsupportedOperationException("not implemented");
   }
 
   /* (non-Javadoc)
    * @see org.cyborgs3335.checkin.messenger.IMessenger#getCheckInStatus(long)
    */
   @Override
-  public Status getCheckInStatus(long id) throws IOException {
+  public Status getCheckInStatus(long id) throws IOException, UnknownUserException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -78,7 +87,7 @@ public class HttpMessenger implements IMessenger {
     //return null;
   }
 
-  private RequestResponse sendRequest(long id, Action action) throws IOException {
+  private RequestResponse sendRequest(long id, Action action) throws IOException, UnknownUserException {
     // Possible responses from server
     //  1. Request completed successfully
     //  2. Unknown ID
@@ -192,7 +201,7 @@ public class HttpMessenger implements IMessenger {
     }
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws UnknownUserException {
     IMessenger m = new HttpMessenger("http://localhost:8080/attendance/request");
     try {
       RequestResponse response = m.checkIn(1);

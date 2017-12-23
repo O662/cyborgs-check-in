@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.logging.Logger;
 
 import org.cyborgs3335.checkin.CheckInActivity;
+import org.cyborgs3335.checkin.UnknownUserException;
 import org.cyborgs3335.checkin.CheckInEvent.Status;
 import org.cyborgs3335.checkin.server.local.LocalMessenger;
 
@@ -40,7 +41,7 @@ public class CompositeMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#checkIn(long)
    */
   @Override
-  public RequestResponse checkIn(long id) throws IOException {
+  public RequestResponse checkIn(long id) throws IOException, UnknownUserException {
     RequestResponse response1 = messenger1.checkIn(id);
     if (!response1.equals(RequestResponse.Ok)) {
       return response1;
@@ -53,7 +54,7 @@ public class CompositeMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#checkOut(long)
    */
   @Override
-  public RequestResponse checkOut(long id) throws IOException {
+  public RequestResponse checkOut(long id) throws IOException, UnknownUserException {
     RequestResponse response1 = messenger1.checkOut(id);
     if (!response1.equals(RequestResponse.Ok)) {
       return response1;
@@ -63,10 +64,24 @@ public class CompositeMessenger implements IMessenger {
   }
 
   /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#toggleCheckInStatus(long)
+   */
+  @Override
+  public Status toggleCheckInStatus(long id) throws IOException, UnknownUserException {
+    Status status1 = messenger1.toggleCheckInStatus(id);
+    Status status2 = messenger2.toggleCheckInStatus(id);
+    if (status1.compareTo(status2) != 0) {
+      throw new IllegalStateException("Status from messenger 1 (" + status1
+          + ") does not match status from messenger 2 (" + status2 + ")");
+    }
+    return status1;
+  }
+
+  /* (non-Javadoc)
    * @see org.cyborgs3335.checkin.messenger.IMessenger#getCheckInStatus(long)
    */
   @Override
-  public Status getCheckInStatus(long id) throws IOException {
+  public Status getCheckInStatus(long id) throws IOException, UnknownUserException {
     Status status1 = messenger1.getCheckInStatus(id);
     Status status2 = messenger2.getCheckInStatus(id);
     if (status1.compareTo(status2) != 0) {
@@ -119,7 +134,7 @@ public class CompositeMessenger implements IMessenger {
    * @param args
    * @throws IOException 
    */
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws IOException, UnknownUserException {
     IMessenger m1 = new HttpMessenger("http://localhost:8080/attendance/request");
     IMessenger m2 = new LocalMessenger("/tmp/check-in-server.db");
     IMessenger m = new CompositeMessenger(m1, m2);
