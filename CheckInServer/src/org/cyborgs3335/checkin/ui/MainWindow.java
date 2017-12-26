@@ -1,6 +1,7 @@
 package org.cyborgs3335.checkin.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
@@ -43,10 +44,10 @@ import javax.swing.text.BadLocationException;
 import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.IDatabaseOperations;
-import org.cyborgs3335.checkin.MainApp;
 import org.cyborgs3335.checkin.Person;
 import org.cyborgs3335.checkin.UnknownUserException;
-import org.cyborgs3335.checkin.server.local.CheckInServer;
+import org.cyborgs3335.checkin.messenger.IMessenger;
+import org.cyborgs3335.checkin.messenger.IMessenger.RequestResponse;
 
 public class MainWindow extends JFrame {
 
@@ -254,18 +255,18 @@ public class MainWindow extends JFrame {
     panel.add(bottomBox, BorderLayout.SOUTH);
 
     // Set initial activity
-    CheckInActivity activity = CheckInServer.getInstance().getActivity();
+    CheckInActivity activity = dbOperations.getMessenger().getActivity();
     if (activity != null) {
       nameField.setText(activity.getName());
       timeStartField.setText(dateFormat.format(activity.getStartDate()));
       timeEndField.setText(dateFormat.format(activity.getEndDate()));
     }
     // Listen for changes to activity
-    CheckInServer.getInstance().addPropertyChangeListener(CheckInServer.ACTIVITY_PROPERTY, new PropertyChangeListener() {
+    dbOperations.getMessenger().addPropertyChangeListener(IMessenger.ACTIVITY_PROPERTY, new PropertyChangeListener() {
 
       @Override
       public void propertyChange(PropertyChangeEvent evt) {
-        CheckInActivity activity = CheckInServer.getInstance().getActivity(); 
+        CheckInActivity activity = dbOperations.getMessenger().getActivity(); 
         if (activity != null) {
           nameField.setText(activity.getName());
           timeStartField.setText(dateFormat.format(activity.getStartDate()));
@@ -359,16 +360,24 @@ public class MainWindow extends JFrame {
 
       @Override
       public void actionPerformed(ActionEvent e) {
-        new SessionWindow();
+        new SessionWindow(dbOperations.getMessenger());
       }
     });
     editMenu.add(activityMenuItem);
     JMenuItem fullCheckOutMenuItem = new JMenuItem("Full check out...");
+    final Component parent = this;
     fullCheckOutMenuItem.addActionListener(new ActionListener() {
 
       @Override
       public void actionPerformed(ActionEvent e) {
-        CheckInServer.getInstance().checkOutAll();
+        try {
+          dbOperations.getMessenger().checkOutAll();
+        } catch (IOException e1) {
+          e1.printStackTrace();
+          JOptionPane.showMessageDialog(parent, "Received IOException while trying to perform a full checkout: "
+              + e1.getMessage(), "Checkout All Error",
+              JOptionPane.ERROR_MESSAGE);
+        }
       }
     });
     editMenu.add(fullCheckOutMenuItem);
@@ -385,15 +394,15 @@ public class MainWindow extends JFrame {
       @Override
       public void actionPerformed(ActionEvent e) {
         if (frame != null && table != null) {
-          table.setModel(new SortedCheckInTableModel());
+          table.setModel(new SortedCheckInTableModel(dbOperations.getMessenger()));
           frame.setVisible(true);
         } else {
           JTextArea recordArea = new JTextArea();
-          table = new JTable(new SortedCheckInTableModel());
+          table = new JTable(new SortedCheckInTableModel(dbOperations.getMessenger()));
           JScrollPane scrollPane = new JScrollPane(/*recordArea*/table);
           table.setFillsViewportHeight(true);
           scrollPane.setPreferredSize(new Dimension(880, 450));
-          String buffer = CheckInServer.getInstance().printToString();
+          String buffer = dbOperations.getMessenger().lastCheckInEventToString();
           recordArea.append(buffer);
           //JOptionPane.showMessageDialog(viewMenu, scrollPane, "Attendance Records", JOptionPane.PLAIN_MESSAGE);
           JPanel panel = new JPanel(new BorderLayout(5, 5));
@@ -404,7 +413,7 @@ public class MainWindow extends JFrame {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-              table.setModel(new SortedCheckInTableModel());;
+              table.setModel(new SortedCheckInTableModel(dbOperations.getMessenger()));;
             }
           });
           JButton dismissButton = new JButton("Dismiss");
@@ -469,8 +478,7 @@ public class MainWindow extends JFrame {
         personStatusField.setText(personText);
         return;
       }
-      CheckInServer server = CheckInServer.getInstance();
-      Person person = server.findPerson(firstName, lastName);
+      Person person = dbOperations.getMessenger().findPerson(firstName, lastName);
       String personText = null;
       if (person == null) {
         personText = "New person: " + firstName + " " + lastName;
@@ -493,8 +501,21 @@ public class MainWindow extends JFrame {
       //textArea.append(personText + "\n");
       personStatusField.setText(personText);
       addButton.setEnabled(false);
-      CheckInEvent lastEvent = server.getAttendanceRecord(person.getId()).getLastEvent();
-      CheckInEvent.Status status = lastEvent.getStatus();
+      CheckInEvent lastEvent = null;
+      CheckInEvent.Status status = null;
+      try {
+        lastEvent = dbOperations.getMessenger().getLastCheckInEvent(person.getId());
+        //status = lastEvent.getStatus();
+        status = dbOperations.getMessenger().getCheckInStatus(person.getId());
+      } catch (UnknownUserException e1) {
+        personText = "Unknown user: " + firstName + " " + lastName + "; try adding as a new person";
+        e1.printStackTrace();
+        return;
+      } catch (IOException e1) {
+        personText = "IOException on user: " + firstName + " " + lastName + ": contact support for assistance";
+        e1.printStackTrace();
+        return;
+      }
       boolean checkInState = (status.equals(CheckInEvent.Status.CheckedIn));
       String checkInString = checkInState ? "Checked in" : "Checked out";
       checkInStatusField.setText("Status: " + checkInString + " at " + dateFormat.format(lastEvent.getTimeStamp()));
@@ -510,8 +531,7 @@ public class MainWindow extends JFrame {
     public void actionPerformed(ActionEvent e) {
       String firstName = firstNameField.getText();
       String lastName = lastNameField.getText();
-      CheckInServer server = CheckInServer.getInstance();
-      Person person = server.findPerson(firstName, lastName);
+      Person person = dbOperations.getMessenger().findPerson(firstName, lastName);
       String personText = null;
       if (person == null) {
         personText = "New person: " + firstName + " " + lastName;
@@ -533,25 +553,37 @@ public class MainWindow extends JFrame {
       firstNameField.setEditable(false);
       lastNameField.setEditable(false);
       try {
-        boolean checkIn = server.accept(person.getId());
-        String status = checkIn ? "Checked in" : "Checked out";
-        String text = status + " " + firstName + " " + lastName + " at " + dateFormat.format(new Date());
-        System.out.println(text);
-        textArea.append(text + "\n");
-        checkInStatusField.setText(text);
-        searchButton.setEnabled(false);
-        if (!checkIn) {
-          String statusText = "Expected to check in " + firstName + " " + lastName
-              + ", but was checked out instead!";
-          System.out.println(statusText);
-          textArea.append(statusText);
-          checkInButton.setEnabled(true);
-          checkOutButton.setEnabled(false);
-        } else {
-          checkInButton.setEnabled(false);
-          checkOutButton.setEnabled(true);
+        String statusText = "";
+        RequestResponse response = dbOperations.getMessenger().checkOut(person.getId());
+        switch (response) {
+          case Ok:
+            statusText = "Checked in " + firstName + " " + lastName + " at " + dateFormat.format(new Date());
+            searchButton.setEnabled(false);
+            checkInButton.setEnabled(false);
+            checkOutButton.setEnabled(true);
+            break;
+          case UnknownId:
+            statusText = "Unknown ID: " + person.getId() + " " + firstName + " " + lastName;
+            searchButton.setEnabled(true);
+            checkInButton.setEnabled(false);
+            checkOutButton.setEnabled(false);
+            break;
+          case FailedRequest:
+          default:
+            statusText = "Failed to check in ID: " + person.getId() + " " + firstName + " " + lastName;
+            searchButton.setEnabled(true);
+            checkInButton.setEnabled(false);
+            checkOutButton.setEnabled(false);
+            break;
         }
+        System.out.println(statusText);
+        textArea.append(statusText + "\n");
+        checkInStatusField.setText(statusText);
       } catch (UnknownUserException e1) {
+        // TODO Auto-generated catch block
+        textArea.append(e1.getMessage());
+        e1.printStackTrace();
+      } catch (IOException e1) {
         // TODO Auto-generated catch block
         textArea.append(e1.getMessage());
         e1.printStackTrace();
@@ -565,8 +597,7 @@ public class MainWindow extends JFrame {
     public void actionPerformed(ActionEvent e) {
       String firstName = firstNameField.getText();
       String lastName = lastNameField.getText();
-      CheckInServer server = CheckInServer.getInstance();
-      Person person = server.findPerson(firstName, lastName);
+      Person person = dbOperations.getMessenger().findPerson(firstName, lastName);
       String personText = null;
       if (person == null) {
         personText = "New person: " + firstName + " " + lastName;
@@ -588,25 +619,37 @@ public class MainWindow extends JFrame {
       firstNameField.setEditable(false);
       lastNameField.setEditable(false);
       try {
-        boolean checkIn = server.accept(person.getId());
-        String status = checkIn ? "Checked in" : "Checked out";
-        String text = status + " " + firstName + " " + lastName + " at " + dateFormat.format(new Date());
-        System.out.println(text);
-        textArea.append(text + "\n");
-        checkInStatusField.setText(text);
-        searchButton.setEnabled(false);
-        if (checkIn) {
-          String statusText = "Expected to check out " + firstName + " " + lastName
-              + ", but was checked in instead!";
-          System.out.println(statusText);
-          textArea.append(statusText);
-          checkInButton.setEnabled(false);
-          checkOutButton.setEnabled(true);
-        } else {
-          checkInButton.setEnabled(true);
-          checkOutButton.setEnabled(false);
+        String statusText = "";
+        RequestResponse response = dbOperations.getMessenger().checkOut(person.getId());
+        switch (response) {
+          case Ok:
+            statusText = "Checked out " + firstName + " " + lastName + " at " + dateFormat.format(new Date());
+            searchButton.setEnabled(false);
+            checkInButton.setEnabled(true);
+            checkOutButton.setEnabled(false);
+            break;
+          case UnknownId:
+            statusText = "Unknown ID: " + person.getId() + " " + firstName + " " + lastName;
+            searchButton.setEnabled(true);
+            checkInButton.setEnabled(false);
+            checkOutButton.setEnabled(false);
+            break;
+          case FailedRequest:
+          default:
+            statusText = "Failed to check out ID: " + person.getId() + " " + firstName + " " + lastName;
+            searchButton.setEnabled(true);
+            checkInButton.setEnabled(false);
+            checkOutButton.setEnabled(false);
+            break;
         }
+        System.out.println(statusText);
+        textArea.append(statusText + "\n");
+        checkInStatusField.setText(statusText);
       } catch (UnknownUserException e1) {
+        // TODO Auto-generated catch block
+        textArea.append(e1.getMessage());
+        e1.printStackTrace();
+      } catch (IOException e1) {
         // TODO Auto-generated catch block
         textArea.append(e1.getMessage());
         e1.printStackTrace();
@@ -620,11 +663,10 @@ public class MainWindow extends JFrame {
     public void actionPerformed(ActionEvent e) {
       String firstName = firstNameField.getText();
       String lastName = lastNameField.getText();
-      CheckInServer server = CheckInServer.getInstance();
-      Person person = server.findPerson(firstName, lastName);
+      Person person = dbOperations.getMessenger().findPerson(firstName, lastName);
       String personText = null;
       if (person == null) {
-        person = server.addUser(firstName, lastName);
+        person = dbOperations.getMessenger().addPerson(firstName, lastName);
         personText = "Added new person: " + firstName + " " + lastName + " ID " + person.getId();
         textArea.append(personText + "\n");
         addButton.setEnabled(false);
@@ -639,9 +681,10 @@ public class MainWindow extends JFrame {
       firstNameField.setEditable(false);
       lastNameField.setEditable(false);
       try {
-        boolean checkIn = server.accept(person.getId());
-        String status = checkIn ? "Checked in" : "Checked out";
-        String text = status + " " + firstName + " " + lastName + " at " + dateFormat.format(new Date());
+        CheckInEvent.Status status = dbOperations.getMessenger().toggleCheckInStatus(person.getId());
+        boolean checkIn = status.equals(CheckInEvent.Status.CheckedIn);
+        String statusText = checkIn ? "Checked in" : "Checked out";
+        String text = statusText + " " + firstName + " " + lastName + " at " + dateFormat.format(new Date());
         System.out.println(text);
         textArea.append(text + "\n");
         checkInStatusField.setText(text);
@@ -649,6 +692,10 @@ public class MainWindow extends JFrame {
         checkOutButton.setEnabled(checkIn);
         clearButton.setEnabled(true);
       } catch (UnknownUserException e1) {
+        // TODO Auto-generated catch block
+        textArea.append(e1.getMessage());
+        e1.printStackTrace();
+      } catch (IOException e1) {
         // TODO Auto-generated catch block
         textArea.append(e1.getMessage());
         e1.printStackTrace();

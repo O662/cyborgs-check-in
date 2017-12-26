@@ -1,12 +1,18 @@
 package org.cyborgs3335.checkin.messenger;
 
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringWriter;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.cyborgs3335.checkin.CheckInActivity;
+import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.CheckInEvent.Status;
+import org.cyborgs3335.checkin.Person;
+import org.cyborgs3335.checkin.PersonCheckInEvent;
 import org.cyborgs3335.checkin.UnknownUserException;
 
 import com.google.gson.Gson;
@@ -31,6 +37,8 @@ public class HttpMessenger implements IMessenger {
 
   private final String serverUrl;
 
+  private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
+
   public HttpMessenger(String serverUrl) {
     client = new OkHttpClient();
     this.serverUrl = serverUrl;
@@ -53,6 +61,15 @@ public class HttpMessenger implements IMessenger {
   }
 
   /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#checkOutAll()
+   */
+  @Override
+  public RequestResponse checkOutAll() throws IOException {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  /* (non-Javadoc)
    * @see org.cyborgs3335.checkin.messenger.IMessenger#toggleCheckInStatus(long)
    */
   @Override
@@ -69,12 +86,33 @@ public class HttpMessenger implements IMessenger {
   }
 
   /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#findPerson(java.lang.String, java.lang.String)
+   */
+  @Override
+  public Person findPerson(String firstName, String lastName) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#addPerson(java.lang.String, java.lang.String)
+   */
+  @Override
+  public Person addPerson(String firstName, String lastName) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  /* (non-Javadoc)
    * @see org.cyborgs3335.checkin.messenger.IMessenger#setActivity(org.cyborgs3335.checkin.CheckInActivity)
    */
   @Override
   public void setActivity(CheckInActivity activity) {
+    CheckInActivity oldActivity = getActivity();
     // TODO Auto-generated method stub
+    // TODO set activity
     throw new UnsupportedOperationException("not implemented");
+    //pcs.firePropertyChange(ACTIVITY_PROPERTY, oldActivity, activity);
   }
 
   /* (non-Javadoc)
@@ -85,6 +123,62 @@ public class HttpMessenger implements IMessenger {
     // TODO Auto-generated method stub
     throw new UnsupportedOperationException("not implemented");
     //return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#addPropertyChangeListener(java.beans.PropertyChangeListener)
+   */
+  public void addPropertyChangeListener(PropertyChangeListener listener) {
+    pcs.addPropertyChangeListener(listener);
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#removePropertyChangeListener(java.beans.PropertyChangeListener)
+   */
+  public void removePropertyChangeListener(PropertyChangeListener listener) {
+    pcs.removePropertyChangeListener(listener);
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#addPropertyChangeListener(java.lang.String, java.beans.PropertyChangeListener)
+   */
+  public void addPropertyChangeListener(String propertyName, PropertyChangeListener listener) {
+    pcs.addPropertyChangeListener(propertyName, listener);
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#removePropertyChangeListener(java.lang.String, java.beans.PropertyChangeListener)
+   */
+  public void removePropertyChangeListener(String propertyName, PropertyChangeListener listener) {
+    pcs.removePropertyChangeListener(propertyName, listener);
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#lastCheckInEventToString()
+   */
+  @Override
+  public String lastCheckInEventToString() {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#getLastCheckInEventsSorted()
+   */
+  @Override
+  public List<PersonCheckInEvent> getLastCheckInEventsSorted() {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#getLastCheckInEvent(long)
+   */
+  @Override
+  public CheckInEvent getLastCheckInEvent(long id)
+      throws IOException, UnknownUserException {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("not implemented");
   }
 
   private RequestResponse sendRequest(long id, Action action) throws IOException, UnknownUserException {

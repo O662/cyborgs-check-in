@@ -27,7 +27,7 @@ public class IdScanner {
   public static void main(String[] args) throws IOException {
     String path = "/tmp/check-in-server2.dump";
     LocalMessenger messenger = new LocalMessenger(path);
-    messenger.print();
+    System.out.println(messenger.lastCheckInEventToString());
 
     IdScanner idScanner = new IdScanner(messenger);
     while (true) {
@@ -37,7 +37,7 @@ public class IdScanner {
         System.out.println("Exiting...");
         break;
       } else if (id == -2) {
-        messenger.print();
+        System.out.println(messenger.lastCheckInEventToString());
         continue;
       }
       try {
@@ -58,7 +58,7 @@ public class IdScanner {
       }
     }
 
-    messenger.print();
+    System.out.println(messenger.lastCheckInEventToString());
     messenger.save();
   }
 

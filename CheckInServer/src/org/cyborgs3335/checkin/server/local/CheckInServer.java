@@ -11,6 +11,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.StringWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -46,6 +47,7 @@ public class CheckInServer {
 
   private static final Logger LOG = Logger.getLogger(CheckInServer.class.getName());
 
+  @Deprecated
   public static final String ACTIVITY_PROPERTY = "ACTIVITY_PROPERTY";
 
   public static final String DB_ATTENDANCE_RECORDS = "attendance-records.db";
@@ -246,18 +248,22 @@ public class CheckInServer {
     pcs.firePropertyChange(ACTIVITY_PROPERTY, oldActivity, activity);
   }
 
+  @Deprecated
   public void addPropertyChangeListener(PropertyChangeListener listener) {
     pcs.addPropertyChangeListener(listener);
   }
 
+  @Deprecated
   public void removePropertyChangeListener(PropertyChangeListener listener) {
     pcs.removePropertyChangeListener(listener);
   }
 
+  @Deprecated
   public void addPropertyChangeListener(String propertyName, PropertyChangeListener listener) {
     pcs.addPropertyChangeListener(propertyName, listener);
   }
 
+  @Deprecated
   public void removePropertyChangeListener(String propertyName, PropertyChangeListener listener) {
     pcs.removePropertyChangeListener(propertyName, listener);
   }
@@ -670,39 +676,20 @@ public class CheckInServer {
   /**
    * Print the last check-in event for each attendance record.
    */
-  public void print() {
-    if (activity != null) {
-      activity.print(dateFormat);
-    }
-    synchronized (map) {
-      for (Long id : map.keySet()) {
-        AttendanceRecord record = map.get(id);
-        ArrayList<CheckInEvent> list = record.getEventList();
-        CheckInEvent event = list.get(list.size()-1);
-        System.out.println("id " + id + " name " + record.getPerson() + " check-in "
-            + event.getStatus() + " " + dateFormat.format(new Date(event.getTimeStamp())));
-      }
-    }
-  }
-
-  /**
-   * Print the last check-in event for each attendance record.
-   */
   public String printToString() {
-    String buffer = "";
-    DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
+    StringWriter writer = new StringWriter();
     if (activity != null) {
-      buffer += activity.printToString(dateFormat) + "\n";
+      writer.write(activity.printToString(dateFormat) + "\n");
     }
     synchronized (map) {
       for (Long id : map.keySet()) {
         AttendanceRecord record = map.get(id);
         ArrayList<CheckInEvent> list = record.getEventList();
         CheckInEvent event = list.get(list.size()-1);
-        buffer += "id " + id + " name " + record.getPerson() + " check-in "
-            + event.getStatus() + " " + dateFormat.format(new Date(event.getTimeStamp())) + "\n";
+        writer.write("id " + id + " name " + record.getPerson() + " check-in "
+            + event.getStatus() + " " + dateFormat.format(new Date(event.getTimeStamp())) + "\n");
       }
     }
-    return buffer;
+    return writer.toString();
   }
 }

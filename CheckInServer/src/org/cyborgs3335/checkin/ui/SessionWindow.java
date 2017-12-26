@@ -7,8 +7,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.io.IOException;
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -29,7 +29,8 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.cyborgs3335.checkin.CheckInActivity;
-import org.cyborgs3335.checkin.server.local.CheckInServer;
+import org.cyborgs3335.checkin.messenger.IMessenger;
+import org.cyborgs3335.checkin.server.local.LocalMessenger;
 
 public class SessionWindow extends JFrame {
 
@@ -49,9 +50,12 @@ public class SessionWindow extends JFrame {
 
   private JLabel timeLengthLabel;
 
-  public SessionWindow() {
+  private final IMessenger messenger;
+
+  public SessionWindow(IMessenger messenger) {
     //dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
     dateFormat = new SimpleDateFormat();
+    this.messenger = messenger;
     setSize(600, 400);
     build();
     pack();
@@ -146,7 +150,7 @@ public class SessionWindow extends JFrame {
     buttonPanel.add(Box.createHorizontalGlue());
     panel.add(buttonPanel, BorderLayout.SOUTH);
 
-    CheckInActivity activity = CheckInServer.getInstance().getActivity();
+    CheckInActivity activity = messenger.getActivity();
     if (activity != null) {
       nameField.setText(activity.getName());
       dateModelStart.setValue(activity.getStartDate());
@@ -207,7 +211,15 @@ public class SessionWindow extends JFrame {
 
       @Override
       public void run() {
-        new SessionWindow();
+        final String path = "/tmp/check-in-server-session-window-test.dump";
+        LocalMessenger messenger;
+        try {
+          messenger = new LocalMessenger(path);
+          new SessionWindow(messenger);
+        } catch (IOException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        }
       }
     });
   }
@@ -236,8 +248,8 @@ public class SessionWindow extends JFrame {
         return;
       }
       CheckInActivity activity = new CheckInActivity(name, timeStart, timeEnd);
-      CheckInServer.getInstance().setActivity(activity);
-      CheckInServer.getInstance().print();
+      messenger.setActivity(activity);
+      System.out.println(messenger.lastCheckInEventToString());
       //setVisible(false);
       dispose();
       //} catch (ParseException e1) {

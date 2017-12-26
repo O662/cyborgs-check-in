@@ -17,7 +17,6 @@ import java.util.logging.SimpleFormatter;
 import javax.swing.JOptionPane;
 
 import org.cyborgs3335.checkin.messenger.IMessenger;
-import org.cyborgs3335.checkin.server.local.CheckInServer;
 import org.cyborgs3335.checkin.server.local.LocalMessenger;
 import org.cyborgs3335.checkin.ui.MainWindow;
 
@@ -50,6 +49,14 @@ public class MainApp implements IDatabaseOperations {
     localMessenger = messenger;
     dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
     //dateFormat = new SimpleDateFormat();
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.IDatabaseOperations#getMessenger()
+   */
+  @Override
+  public IMessenger getMessenger() {
+    return localMessenger;
   }
 
   /**
@@ -132,7 +139,7 @@ public class MainApp implements IDatabaseOperations {
         System.out.println("Exiting...");
         break;
       } else if (id == -2) {
-        CheckInServer.getInstance().print();
+        System.out.println(messenger.lastCheckInEventToString());
         continue;
       }
       try {
@@ -201,8 +208,9 @@ public class MainApp implements IDatabaseOperations {
   @Override
   public synchronized void saveDatabase(String newPath, boolean updatePath) {
     if (LOG.isLoggable(Level.FINE)) {
-      localMessenger.print();
-      logDatabase(localMessenger.printToString());
+      String buffer = localMessenger.lastCheckInEventToString();
+      System.out.print(buffer);
+      logDatabase(buffer);
     }
     try {
       localMessenger.save(newPath);
@@ -362,8 +370,9 @@ public class MainApp implements IDatabaseOperations {
     }
 
     if (LOG.isLoggable(Level.FINE)) {
-      localMessenger.print();
-      app.logDatabase(localMessenger.printToString());
+      String buffer = localMessenger.lastCheckInEventToString();
+      System.out.print(buffer);
+      app.logDatabase(buffer);
     }
     app.runAutoSave(path + "_auto_save", 60L * 1000L, 120L * 1000L, true);
     app.scanIdsUi();

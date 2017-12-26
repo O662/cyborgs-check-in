@@ -20,7 +20,6 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
 import org.cyborgs3335.checkin.messenger.IMessenger;
-import org.cyborgs3335.checkin.server.local.CheckInServer;
 import org.cyborgs3335.checkin.server.local.LocalMessenger;
 
 import java.io.IOException;
@@ -37,7 +36,6 @@ public class NewUserApp extends JFrame {
 
   private static final long serialVersionUID = 1926718100094660447L;
   private final DateFormat dateFormat;
-  private String path;
   private final LocalMessenger messenger;
 
   public NewUserApp(LocalMessenger messenger) {
@@ -107,11 +105,10 @@ public class NewUserApp extends JFrame {
       public void actionPerformed(ActionEvent e) {
         String firstName = firstNameField.getText();
         String lastName = lastNameField.getText();
-        CheckInServer server = CheckInServer.getInstance();
-        Person person = server.findPerson(firstName, lastName);
+        Person person = messenger.findPerson(firstName, lastName);
         String personText = null;
         if (person == null) {
-          person = server.addUser(firstName, lastName);
+          person = messenger.addPerson(firstName, lastName);
           personText = "Added new person: " + firstName + " " + lastName + " id " + person.getId();
         } else {
           personText = "Found existing person: " + firstName + " " + lastName + " id " + person.getId();
@@ -119,12 +116,15 @@ public class NewUserApp extends JFrame {
         System.out.println(personText);
         personStatusField.setText(personText);
         try {
-          boolean checkIn = server.accept(person.getId());
-          String status = checkIn ? "Checked in" : "Checked out";
+          CheckInEvent.Status eventStatus = messenger.toggleCheckInStatus(person.getId());
+          String status = eventStatus.equals(CheckInEvent.Status.CheckedIn) ? "Checked in" : "Checked out";
           String text = status + " " + firstName + " " + lastName + " at " + dateFormat.format(new Date());
           System.out.println(text);
           checkInStatusField.setText(text);
         } catch (UnknownUserException e1) {
+          // TODO Auto-generated catch block
+          e1.printStackTrace();
+        } catch (IOException e1) {
           // TODO Auto-generated catch block
           e1.printStackTrace();
         }
@@ -184,7 +184,7 @@ public class NewUserApp extends JFrame {
         System.out.println("Exiting...");
         break;
       } else if (id == -2) {
-        CheckInServer.getInstance().print();
+        System.out.println(messenger.lastCheckInEventToString());
         continue;
       }
       try {
@@ -206,14 +206,10 @@ public class NewUserApp extends JFrame {
     }
   }
 
-  public void setPath(String p) {
-    path = p;
-  }
-
   private void exitApp() {
-    messenger.print();
+    System.out.println(messenger.lastCheckInEventToString());
     try {
-      messenger.save(path);
+      messenger.save();
     } catch (IOException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
@@ -243,14 +239,13 @@ public class NewUserApp extends JFrame {
 
       @Override
       public void run() {
-        NewUserApp app = new NewUserApp(messenger);
-        app.setPath(path);
+        /*NewUserApp app = */new NewUserApp(messenger);
       }
     });
 
-    messenger.print();
+    System.out.println(messenger.lastCheckInEventToString());
     scanIdsTerminal(messenger);
-    messenger.print();
+    System.out.println(messenger.lastCheckInEventToString());
     messenger.save();
 
   }

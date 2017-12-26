@@ -44,9 +44,7 @@ public class CheckInActivity implements Serializable {
   }
 
   public void print(DateFormat dateFormat) {
-    System.out.println("Activity " + name
-        + " Start Time " + dateFormat.format(new Date(timeStart))
-        + " End Time " + dateFormat.format(new Date(timeEnd)));
+    System.out.println(printToString(dateFormat));
   }
 
   public String printToString(DateFormat dateFormat) {

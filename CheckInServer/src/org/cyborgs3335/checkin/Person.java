@@ -51,4 +51,30 @@ public class Person implements Serializable {
     }
     return firstName + " " + lastName;
   }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == null) {
+      return false;
+    }
+    if (!(obj instanceof Person)) {
+      return false;
+    }
+    Person person = (Person) obj;
+    return id == person.id
+        && firstName.equals(person.firstName)
+        && middleName.equals(person.middleName)
+        && lastName.equals(person.lastName)
+        && nickName.equals(person.nickName);
+  }
+
+  @Override
+  public int hashCode() {
+    long hashLong = (long) Long.hashCode(id)
+        + (long) firstName.hashCode()
+        + (long) middleName.hashCode()
+        + (long) lastName.hashCode()
+        + (long) nickName.hashCode();
+    return (int) hashLong;
+  }
 }

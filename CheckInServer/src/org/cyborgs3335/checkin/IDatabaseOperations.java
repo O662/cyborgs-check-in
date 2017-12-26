@@ -1,6 +1,14 @@
 package org.cyborgs3335.checkin;
 
+import org.cyborgs3335.checkin.messenger.IMessenger;
+
 public interface IDatabaseOperations {
+
+  /**
+   * Get the messenger for communicating with the database.
+   * @return database messenger
+   */
+  public IMessenger getMessenger();
 
   /**
    * Load database from current default path location.
