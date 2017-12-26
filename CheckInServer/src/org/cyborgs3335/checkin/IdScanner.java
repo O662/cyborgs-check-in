@@ -26,7 +26,7 @@ public class IdScanner {
 
   public static void main(String[] args) throws IOException {
     String path = "/tmp/check-in-server2.dump";
-    LocalMessenger messenger = new LocalMessenger(path);
+    IMessenger messenger = new LocalMessenger(path);
     System.out.println(messenger.lastCheckInEventToString());
 
     IdScanner idScanner = new IdScanner(messenger);
@@ -59,7 +59,7 @@ public class IdScanner {
     }
 
     System.out.println(messenger.lastCheckInEventToString());
-    messenger.save();
+    messenger.close();
   }
 
 }

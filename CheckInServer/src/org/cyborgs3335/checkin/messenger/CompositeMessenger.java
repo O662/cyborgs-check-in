@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.logging.Logger;
 
+import org.cyborgs3335.checkin.AttendanceRecord;
 import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.Person;
@@ -237,6 +238,30 @@ public class CompositeMessenger implements IMessenger {
       + ") does not match event from messenger 2 (" + event2 + ")");
     }
     return event1;
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#getAttendanceRecord(long)
+   */
+  @Override
+  public AttendanceRecord getAttendanceRecord(long id)
+      throws IOException, UnknownUserException {
+    AttendanceRecord record1 = messenger1.getAttendanceRecord(id);
+    AttendanceRecord record2 = messenger2.getAttendanceRecord(id);
+    if (!record1.equals(record2)) {
+      throw new IllegalStateException("Attendance record from messenger 1 (" + record1
+      + ") does not match attendance record from messenger 2 (" + record2 + ")");
+    }
+    return record1;
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#close()
+   */
+  @Override
+  public void close() throws IOException {
+    messenger1.close();
+    messenger2.close();
   }
 
   private static void logResponse(RequestResponse response, String prefix) {

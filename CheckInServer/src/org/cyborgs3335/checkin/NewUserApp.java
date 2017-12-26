@@ -36,9 +36,9 @@ public class NewUserApp extends JFrame {
 
   private static final long serialVersionUID = 1926718100094660447L;
   private final DateFormat dateFormat;
-  private final LocalMessenger messenger;
+  private final IMessenger messenger;
 
-  public NewUserApp(LocalMessenger messenger) {
+  public NewUserApp(IMessenger messenger) {
     this.messenger = messenger;
     //dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
     dateFormat = new SimpleDateFormat();
@@ -209,7 +209,7 @@ public class NewUserApp extends JFrame {
   private void exitApp() {
     System.out.println(messenger.lastCheckInEventToString());
     try {
-      messenger.save();
+      messenger.close();
     } catch (IOException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
@@ -227,7 +227,7 @@ public class NewUserApp extends JFrame {
     //String path = "/tmp/check-in-server-new-user-"+System.currentTimeMillis()+".dump";
     //String path = "/tmp/check-in-server-new-user.dump";
     final String path = "/tmp/check-in-server-new-user-test.dump";
-    final LocalMessenger messenger = new LocalMessenger(path);
+    final IMessenger messenger = new LocalMessenger(path);
 
     long timeStart = System.currentTimeMillis();
     //long timeEnd = timeStart + 60L*60L*1000L;
@@ -246,8 +246,7 @@ public class NewUserApp extends JFrame {
     System.out.println(messenger.lastCheckInEventToString());
     scanIdsTerminal(messenger);
     System.out.println(messenger.lastCheckInEventToString());
-    messenger.save();
-
+    messenger.close();
   }
 
 }

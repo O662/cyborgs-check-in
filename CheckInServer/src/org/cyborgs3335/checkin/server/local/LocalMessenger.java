@@ -215,12 +215,25 @@ public class LocalMessenger implements IMessenger {
     return record.getLastEvent();
   }
 
-  public void save() throws IOException {
-    // TODO replace with queue and auto-save
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#getAttendanceRecord(long)
+   */
+  @Override
+  public AttendanceRecord getAttendanceRecord(long id)
+      throws IOException, UnknownUserException {
+    return server.getAttendanceRecord(id);
+  }
+
+  /* (non-Javadoc)
+   * @see org.cyborgs3335.checkin.messenger.IMessenger#close()
+   */
+  @Override
+  public void close() throws IOException {
     server.dump(databasePath);
   }
 
   public void save(String path) throws IOException {
+    // TODO replace with queue and auto-save
     server.dump(path);
   }
 

@@ -4,6 +4,7 @@ import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.util.List;
 
+import org.cyborgs3335.checkin.AttendanceRecord;
 import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.Person;
@@ -55,4 +56,8 @@ public interface IMessenger {
   public List<PersonCheckInEvent> getLastCheckInEventsSorted();
 
   public CheckInEvent getLastCheckInEvent(long id) throws IOException, UnknownUserException;
+
+  public AttendanceRecord getAttendanceRecord(long id) throws IOException, UnknownUserException;
+
+  public void close() throws IOException;
 }

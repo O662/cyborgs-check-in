@@ -41,12 +41,13 @@ public class MainApp implements IDatabaseOperations {
 
   private final LocalMessenger localMessenger;
   private final DateFormat dateFormat;
-  private String path;
+  private final String path;
   private FileWriter logWriter = null;
   private Component parent = null;
 
-  public MainApp(LocalMessenger messenger) {
+  public MainApp(LocalMessenger messenger, String path) {
     localMessenger = messenger;
+    this.path = path;
     dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
     //dateFormat = new SimpleDateFormat();
   }
@@ -172,10 +173,6 @@ public class MainApp implements IDatabaseOperations {
     });
   }
 
-  public void setPath(String dbPath) {
-    path = dbPath;
-  }
-
   private class MainAppWindowListener extends WindowAdapter {
 
     @Override
@@ -200,13 +197,11 @@ public class MainApp implements IDatabaseOperations {
     saveDatabase(path);
   }
 
-  @Override
-  public void saveDatabase(String newPath) {
-    saveDatabase(newPath, true);
-  }
-
-  @Override
-  public synchronized void saveDatabase(String newPath, boolean updatePath) {
+  /**
+   * Save database to newPath; does not update default path for saving database.
+   * @param newPath directory location for saving database
+   */
+  private synchronized void saveDatabase(String newPath) {
     if (LOG.isLoggable(Level.FINE)) {
       String buffer = localMessenger.lastCheckInEventToString();
       System.out.print(buffer);
@@ -215,9 +210,6 @@ public class MainApp implements IDatabaseOperations {
     try {
       localMessenger.save(newPath);
       localMessenger.saveJson(newPath);
-      if (updatePath) {
-        path = newPath;
-      }
       //System.out.println("Save complete.");
       LOG.info("Save complete (" + newPath + ").");
     } catch (IOException e) {
@@ -306,7 +298,7 @@ public class MainApp implements IDatabaseOperations {
             }
           }
           startTime = System.currentTimeMillis();
-          saveDatabase(autoSavePath, false);
+          saveDatabase(autoSavePath);
           startTime = System.currentTimeMillis();
         }
       }
@@ -359,8 +351,7 @@ public class MainApp implements IDatabaseOperations {
     String path = getAndCreateCheckInAppDir() + File.separator + "test_createdatabase_check-in-server.dump";
     LocalMessenger localMessenger = new LocalMessenger(path);
 
-    MainApp app = new MainApp(localMessenger);
-    app.setPath(path);
+    MainApp app = new MainApp(localMessenger, path);
 
     long timeStart = System.currentTimeMillis();
     long timeEnd = timeStart + 60L*60L*1000L;
