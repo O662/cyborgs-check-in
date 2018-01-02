@@ -29,19 +29,20 @@ public interface IMessenger {
 
   public CheckInEvent.Status getCheckInStatus(long id) throws IOException, UnknownUserException;
 
-  public Person findPerson(String firstName, String lastName);
+  public Person findPerson(String firstName, String lastName) throws IOException;
 
-  public Person addPerson(String firstName, String lastName);
+  public Person addPerson(String firstName, String lastName) throws IOException;
 
   /**
    * Set the current activity; e.g., name, start time, end time, ...
    * The {@link IMessenger#ACTIVITY_PROPERTY} property is fired when
    * a new activity is set.
    * @param activity current activity
+   * @throws IOException
    */
-  public void setActivity(CheckInActivity activity);
+  public void setActivity(CheckInActivity activity) throws IOException;
 
-  public CheckInActivity getActivity();
+  public CheckInActivity getActivity() throws IOException;
 
   public void addPropertyChangeListener(PropertyChangeListener listener);
 

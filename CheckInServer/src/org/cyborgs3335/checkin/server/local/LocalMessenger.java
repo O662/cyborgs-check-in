@@ -62,7 +62,7 @@ public class LocalMessenger implements IMessenger {
    */
   @Override
   public RequestResponse checkIn(long id) throws IOException, UnknownUserException {
-    return id > 0 ? RequestResponse.Ok : RequestResponse.UnknownId;
+    return server.checkIn(id) ? RequestResponse.Ok : RequestResponse.FailedRequest;
   }
 
   /* (non-Javadoc)
@@ -70,7 +70,7 @@ public class LocalMessenger implements IMessenger {
    */
   @Override
   public RequestResponse checkOut(long id) throws IOException, UnknownUserException {
-    return id > 0 ? RequestResponse.Ok : RequestResponse.UnknownId;
+    return server.checkOut(id) ? RequestResponse.Ok : RequestResponse.FailedRequest;
   }
 
   /* (non-Javadoc)
@@ -106,7 +106,7 @@ public class LocalMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#findPerson(java.lang.String, java.lang.String)
    */
   @Override
-  public Person findPerson(String firstName, String lastName) {
+  public Person findPerson(String firstName, String lastName) throws IOException {
     return server.findPerson(firstName, lastName);
   }
 
@@ -114,7 +114,7 @@ public class LocalMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#addPerson(java.lang.String, java.lang.String)
    */
   @Override
-  public Person addPerson(String firstName, String lastName) {
+  public Person addPerson(String firstName, String lastName) throws IOException {
     return server.addUser(firstName, lastName);
   }
 
@@ -122,7 +122,7 @@ public class LocalMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#setActivity(org.cyborgs3335.checkin.CheckInActivity)
    */
   @Override
-  public void setActivity(CheckInActivity activity) {
+  public void setActivity(CheckInActivity activity) throws IOException {
     CheckInActivity oldActivity = getActivity();
     server.setActivity(activity);
     pcs.firePropertyChange(ACTIVITY_PROPERTY, oldActivity, activity);
@@ -132,7 +132,7 @@ public class LocalMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#getActivity()
    */
   @Override
-  public CheckInActivity getActivity() {
+  public CheckInActivity getActivity() throws IOException {
     return server.getActivity();
   }
 

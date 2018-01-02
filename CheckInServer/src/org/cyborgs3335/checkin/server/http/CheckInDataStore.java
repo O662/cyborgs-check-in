@@ -1,9 +1,8 @@
-package org.cyborgs3335.checkin.server.local;
+package org.cyborgs3335.checkin.server.http;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -13,7 +12,6 @@ import java.io.StringWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -41,15 +39,19 @@ import com.google.gson.stream.JsonWriter;
  * @author brian
  *
  */
-public class CheckInServer {
+public class CheckInDataStore {
 
-  private static final Logger LOG = Logger.getLogger(CheckInServer.class.getName());
+  private static final Logger LOG = Logger.getLogger(CheckInDataStore.class.getName());
 
   public static final String DB_ATTENDANCE_RECORDS = "attendance-records.db";
 
   public static final String JSON_ATTENDANCE_RECORDS = "attendance-records.json";
 
   private final Map<Long, AttendanceRecord> map = Collections.synchronizedMap(new HashMap<Long, AttendanceRecord>());
+
+  private boolean isLoaded = false;
+
+  private String dataStorePath = null;
 
   private CheckInActivity activity = null;
 
@@ -58,11 +60,19 @@ public class CheckInServer {
   private DateFormat dateFormatCsv = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
   private static class Singleton {
-    private static final CheckInServer INSTANCE = new CheckInServer();
+    private static final CheckInDataStore INSTANCE = new CheckInDataStore();
   }
 
-  private CheckInServer() {
+  private CheckInDataStore() {
     //addDefaultUsers();
+  }
+
+  /**
+   * Return the check-in server instance.
+   * @return check-in server instance
+   */
+  public static CheckInDataStore getInstance() {
+    return Singleton.INSTANCE;
   }
 
   /*package */void addDefaultUsers() {
@@ -168,14 +178,6 @@ public class CheckInServer {
   }
 
   /**
-   * Return the check-in server instance.
-   * @return check-in server instance
-   */
-  public static CheckInServer getInstance() {
-    return Singleton.INSTANCE;
-  }
-
-  /**
    * Query whether an id is known to the server.
    * @param id of user to query
    * @return true if the id exists
@@ -247,15 +249,15 @@ public class CheckInServer {
       long timeStamp = System.currentTimeMillis();
       Status status;
       switch (event.getStatus()) {
-      case CheckedIn:
-        status = Status.CheckedOut;
-        checkedIn = false;
-        break;
-      case CheckedOut:
-      default:
-        status = Status.CheckedIn;
-        checkedIn = true;
-        break;
+        case CheckedIn:
+          status = Status.CheckedOut;
+          checkedIn = false;
+          break;
+        case CheckedOut:
+        default:
+          status = Status.CheckedIn;
+          checkedIn = true;
+          break;
       }
       if (activity != null) {
         map.get(id).getEventList().add(new CheckInEvent(activity, status, timeStamp));
@@ -279,7 +281,6 @@ public class CheckInServer {
    * @param activity current activity
    */
   public void setActivity(CheckInActivity activity) {
-    CheckInActivity oldActivity = this.activity;
     this.activity = activity;
   }
 
@@ -288,12 +289,26 @@ public class CheckInServer {
    * @param path directory containing "database"
    * @throws IOException on I/O error loading "database" from filesystem 
    */
-  /*package*/void load(String path) throws IOException {
+  /*package*/synchronized void load(String path) throws IOException {
+    if (isLoaded) {
+      throw new IOException("Store is already loaded at path " + dataStorePath
+          + ".  Cannot load again from path " + path);
+    }
     File loadDir = new File(path);
     if (!loadDir.isDirectory()) {
       throw new IOException("Path " + path + " must be a directory!");
     }
-    loadAttendanceRecords(path + File.separator + DB_ATTENDANCE_RECORDS);
+    String recordsPath = path + File.separator + DB_ATTENDANCE_RECORDS;
+    File recordsFile = new File(recordsPath);
+    if (recordsFile.isFile() && recordsFile.canRead()) {
+      loadAttendanceRecords(path + File.separator + DB_ATTENDANCE_RECORDS);
+    } else if (!recordsFile.exists()) {
+      recordsFile.createNewFile();
+    } else {
+      throw new IOException("Unable to access a records file at " + recordsPath);
+    }
+    dataStorePath = path;
+    isLoaded = true;
   }
 
   private void loadAttendanceRecords(String path) {

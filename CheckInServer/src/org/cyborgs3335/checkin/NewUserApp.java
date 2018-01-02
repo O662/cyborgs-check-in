@@ -1,6 +1,7 @@
 package org.cyborgs3335.checkin;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -15,6 +16,7 @@ import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
@@ -99,16 +101,30 @@ public class NewUserApp extends JFrame {
 
     // Ok button
     JButton okButton = new JButton("Add");
+    final Component parent = this;
     okButton.addActionListener(new ActionListener() {
 
       @Override
       public void actionPerformed(ActionEvent e) {
         String firstName = firstNameField.getText();
         String lastName = lastNameField.getText();
-        Person person = messenger.findPerson(firstName, lastName);
+        Person person;
+        try {
+          person = messenger.findPerson(firstName, lastName);
+        } catch (IOException e2) {
+          person = null;
+          e2.printStackTrace();
+        }
         String personText = null;
         if (person == null) {
-          person = messenger.addPerson(firstName, lastName);
+          try {
+            person = messenger.addPerson(firstName, lastName);
+          } catch (IOException e1) {
+            JOptionPane.showMessageDialog(parent, "Received IOException while trying to add a new person ("
+                + firstName + " " + lastName + "): " + e1.getMessage(), "Add New User Error",
+                JOptionPane.ERROR_MESSAGE);
+            e1.printStackTrace();
+          }
           personText = "Added new person: " + firstName + " " + lastName + " id " + person.getId();
         } else {
           personText = "Found existing person: " + firstName + " " + lastName + " id " + person.getId();

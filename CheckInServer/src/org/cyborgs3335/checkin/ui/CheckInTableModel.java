@@ -1,5 +1,6 @@
 package org.cyborgs3335.checkin.ui;
 
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -26,7 +27,7 @@ public class CheckInTableModel extends AbstractTableModel {
   private long[] timeStamps;
   private DateFormat dateFormat;
 
-  public CheckInTableModel(IMessenger messenger) {
+  public CheckInTableModel(IMessenger messenger) throws IOException {
     String buffer = "";
     dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
     CheckInActivity activity = messenger.getActivity();

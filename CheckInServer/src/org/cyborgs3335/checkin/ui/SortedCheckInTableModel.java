@@ -1,5 +1,6 @@
 package org.cyborgs3335.checkin.ui;
 
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 //import java.util.ArrayList;
@@ -39,7 +40,13 @@ public class SortedCheckInTableModel extends AbstractTableModel {
   public SortedCheckInTableModel(IMessenger messenger) {
     dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
 //    CheckInServer server = CheckInServer.getInstance();
-    CheckInActivity activity = messenger.getActivity();
+    CheckInActivity activity;
+    try {
+      activity = messenger.getActivity();
+    } catch (IOException e) {
+      activity = null;
+      e.printStackTrace();
+    }
     if (activity != null) {
       LOG.info("creating table for activity " + activity.getName());
     } else {

@@ -150,12 +150,18 @@ public class SessionWindow extends JFrame {
     buttonPanel.add(Box.createHorizontalGlue());
     panel.add(buttonPanel, BorderLayout.SOUTH);
 
-    CheckInActivity activity = messenger.getActivity();
-    if (activity != null) {
-      nameField.setText(activity.getName());
-      dateModelStart.setValue(activity.getStartDate());
-      dateModelEnd.setValue(activity.getEndDate());
-      update();
+    CheckInActivity activity;
+    try {
+      activity = messenger.getActivity();
+      if (activity != null) {
+        nameField.setText(activity.getName());
+        dateModelStart.setValue(activity.getStartDate());
+        dateModelEnd.setValue(activity.getEndDate());
+        update();
+      }
+    } catch (IOException e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
     }
     this.add(panel);
   }
@@ -212,7 +218,7 @@ public class SessionWindow extends JFrame {
       @Override
       public void run() {
         final String path = "/tmp/check-in-server-session-window-test.dump";
-        LocalMessenger messenger;
+        IMessenger messenger;
         try {
           messenger = new LocalMessenger(path);
           new SessionWindow(messenger);
@@ -248,7 +254,12 @@ public class SessionWindow extends JFrame {
         return;
       }
       CheckInActivity activity = new CheckInActivity(name, timeStart, timeEnd);
-      messenger.setActivity(activity);
+      try {
+        messenger.setActivity(activity);
+      } catch (IOException e1) {
+        e1.printStackTrace();
+        JOptionPane.showMessageDialog(parent, e1.getMessage(), "Error setting activity", JOptionPane.ERROR_MESSAGE);
+      }
       System.out.println(messenger.lastCheckInEventToString());
       //setVisible(false);
       dispose();

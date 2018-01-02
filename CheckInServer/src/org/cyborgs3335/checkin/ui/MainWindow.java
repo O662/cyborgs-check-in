@@ -176,7 +176,7 @@ public class MainWindow extends JFrame {
 
     // Add button
     addButton = new JButton("Add New Person");
-    addButton.addActionListener(new AddUserActionListener());
+    addButton.addActionListener(new AddUserActionListener(this));
     addButton.setEnabled(false);
 
     // Clear button
@@ -255,23 +255,35 @@ public class MainWindow extends JFrame {
     panel.add(bottomBox, BorderLayout.SOUTH);
 
     // Set initial activity
-    CheckInActivity activity = dbOperations.getMessenger().getActivity();
-    if (activity != null) {
-      nameField.setText(activity.getName());
-      timeStartField.setText(dateFormat.format(activity.getStartDate()));
-      timeEndField.setText(dateFormat.format(activity.getEndDate()));
+    CheckInActivity activity;
+    try {
+      activity = dbOperations.getMessenger().getActivity();
+      if (activity != null) {
+        nameField.setText(activity.getName());
+        timeStartField.setText(dateFormat.format(activity.getStartDate()));
+        timeEndField.setText(dateFormat.format(activity.getEndDate()));
+      }
+    } catch (IOException e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
     }
     // Listen for changes to activity
     dbOperations.getMessenger().addPropertyChangeListener(IMessenger.ACTIVITY_PROPERTY, new PropertyChangeListener() {
 
       @Override
       public void propertyChange(PropertyChangeEvent evt) {
-        CheckInActivity activity = dbOperations.getMessenger().getActivity(); 
-        if (activity != null) {
-          nameField.setText(activity.getName());
-          timeStartField.setText(dateFormat.format(activity.getStartDate()));
-          timeEndField.setText(dateFormat.format(activity.getEndDate()));
-        }
+        CheckInActivity activity;
+        try {
+          activity = dbOperations.getMessenger().getActivity();
+          if (activity != null) {
+            nameField.setText(activity.getName());
+            timeStartField.setText(dateFormat.format(activity.getStartDate()));
+            timeEndField.setText(dateFormat.format(activity.getEndDate()));
+          }
+        } catch (IOException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        } 
       }
     });
     this.add(panel);
@@ -478,7 +490,13 @@ public class MainWindow extends JFrame {
         personStatusField.setText(personText);
         return;
       }
-      Person person = dbOperations.getMessenger().findPerson(firstName, lastName);
+      Person person = null;
+      try {
+        person = dbOperations.getMessenger().findPerson(firstName, lastName);
+      } catch (IOException e2) {
+        person = null;
+        e2.printStackTrace();
+      }
       String personText = null;
       if (person == null) {
         personText = "New person: " + firstName + " " + lastName;
@@ -531,7 +549,13 @@ public class MainWindow extends JFrame {
     public void actionPerformed(ActionEvent e) {
       String firstName = firstNameField.getText();
       String lastName = lastNameField.getText();
-      Person person = dbOperations.getMessenger().findPerson(firstName, lastName);
+      Person person;
+      try {
+        person = dbOperations.getMessenger().findPerson(firstName, lastName);
+      } catch (IOException e2) {
+        person = null;
+        e2.printStackTrace();
+      }
       String personText = null;
       if (person == null) {
         personText = "New person: " + firstName + " " + lastName;
@@ -597,7 +621,13 @@ public class MainWindow extends JFrame {
     public void actionPerformed(ActionEvent e) {
       String firstName = firstNameField.getText();
       String lastName = lastNameField.getText();
-      Person person = dbOperations.getMessenger().findPerson(firstName, lastName);
+      Person person;
+      try {
+        person = dbOperations.getMessenger().findPerson(firstName, lastName);
+      } catch (IOException e2) {
+        person = null;
+        e2.printStackTrace();
+      }
       String personText = null;
       if (person == null) {
         personText = "New person: " + firstName + " " + lastName;
@@ -659,14 +689,33 @@ public class MainWindow extends JFrame {
 
   private class AddUserActionListener implements ActionListener {
 
+    final Component parent;
+    public AddUserActionListener(Component parent) {
+      this.parent = parent;
+    }
+
     @Override
     public void actionPerformed(ActionEvent e) {
       String firstName = firstNameField.getText();
       String lastName = lastNameField.getText();
-      Person person = dbOperations.getMessenger().findPerson(firstName, lastName);
+      Person person;
+      try {
+        person = dbOperations.getMessenger().findPerson(firstName, lastName);
+      } catch (IOException e2) {
+        person = null;
+        e2.printStackTrace();
+      }
       String personText = null;
       if (person == null) {
-        person = dbOperations.getMessenger().addPerson(firstName, lastName);
+        try {
+          person = dbOperations.getMessenger().addPerson(firstName, lastName);
+        } catch (IOException e1) {
+          JOptionPane.showMessageDialog(parent, "Received IOException while trying to add a new person ("
+              + firstName + " " + lastName + "): " + e1.getMessage(), "Add New User Error",
+              JOptionPane.ERROR_MESSAGE);
+          e1.printStackTrace();
+          e1.printStackTrace();
+        }
         personText = "Added new person: " + firstName + " " + lastName + " ID " + person.getId();
         textArea.append(personText + "\n");
         addButton.setEnabled(false);

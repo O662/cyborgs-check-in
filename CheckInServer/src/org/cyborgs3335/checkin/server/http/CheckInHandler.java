@@ -3,13 +3,15 @@ package org.cyborgs3335.checkin.server.http;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Calendar;
 import java.util.Enumeration;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.cyborgs3335.checkin.CheckInActivity;
+import org.cyborgs3335.checkin.Person;
+import org.cyborgs3335.checkin.UnknownUserException;
 import org.cyborgs3335.checkin.messenger.IMessenger.Action;
 import org.cyborgs3335.checkin.messenger.IMessenger.RequestResponse;
 import org.eclipse.jetty.server.Request;
@@ -26,21 +28,14 @@ public class CheckInHandler extends AbstractHandler {
 
   private static final String htmlContentType = "text/html; charset=utf-8";
 
-  private final String greeting;
+  private final CheckInDataStore dataStore;
 
-  private final String body;
+  private final String greeting = "Attendance System";
 
-  public CheckInHandler() {
-    this("Hello World");
-  }
+  private final String body = null;
 
-  public CheckInHandler(String greeting) {
-    this(greeting, null);
-  }
-
-  public CheckInHandler(String greeting, String body) {
-    this.greeting = greeting;
-    this.body = body;
+  public CheckInHandler(CheckInDataStore dataStore) {
+    this.dataStore = dataStore;
   }
 
   public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
@@ -52,14 +47,17 @@ public class CheckInHandler extends AbstractHandler {
       case "/attendance/request":
         handleAttendanceRequest(target, request, response);
         break;
-      case "/findPerson":
+      case "/attendance/getActivity":
+        handleGetActivity(target, request, response);
+        break;
+      case "/attendance/setActivity":
+        handleSetActivity(target, request, response);
+        break;
+      case "/attendance/addPerson":
+        handleAddPerson(target, request, response);
+        break;
+      case "/attendance/findPerson":
         handleFindPerson(target, request, response);
-        break;
-      case "/time":
-        handleTime(target, response);
-        break;
-      case "/b":
-        handleB(target, response);
         break;
       case "/":
         handleRoot(target, response);
@@ -94,6 +92,26 @@ public class CheckInHandler extends AbstractHandler {
   }
 
   /**
+   * Response to a GET request for '/' (root).
+   * @param target
+   * @param response
+   * @throws IOException 
+   */
+  private void handleRoot(String target, HttpServletResponse response) throws IOException {
+    PrintWriter out = response.getWriter();
+    out.println("<html><head><title>" + greeting + "</title></head>");
+    out.println("<body>");
+    out.println("<h1>" + greeting + "</h1>");
+    if (body != null) {
+      out.println(body);
+    } else {
+      out.println("<p>This is the root of the " + greeting + " handler</p>");
+      out.println("<p>You accessed path: " + target + "</p>");
+    }
+    out.println("</body></html>");
+  }
+
+  /**
    * Process an attendance request.
    * @param target
    * @param request 
@@ -101,18 +119,7 @@ public class CheckInHandler extends AbstractHandler {
    * @throws IOException
    */
   private void handleAttendanceRequest(String target, HttpServletRequest request, HttpServletResponse response) throws IOException {
-    String inContentType = request.getContentType();
-    if (!inContentType.equalsIgnoreCase(jsonContentType)) {
-      // Did not receive JSON request; reply with error
-      response.setContentType(htmlContentType);
-      response.sendError(HttpServletResponse.SC_NOT_ACCEPTABLE);
-      PrintWriter out = response.getWriter();
-      out.println("<html><head><title>Invalid Content For Request.</title></head>");
-      out.println("<body>");
-      out.println("<h1>Invalid Content For Request</h1>");
-      out.println("<p>Expected content type: " + jsonContentType + "</p>");
-      out.println("<p>Received content type: " + inContentType + "</p>");
-      out.println("</body></html>");
+    if (!checkJsonContentType(response, request.getContentType())) {
       return;
     }
 
@@ -147,11 +154,262 @@ public class CheckInHandler extends AbstractHandler {
     reader.endObject();
     reader.close();
 
+    // Complete action
+    int status;
+    RequestResponse requestResponse;
+    try {
+      boolean success = false;
+      switch (action) {
+        case CheckIn:
+          success = dataStore.checkIn(id);
+          break;
+        case CheckOut:
+          success = dataStore.checkOut(id);
+          break;
+      }
+      if (success) {
+        status = HttpServletResponse.SC_OK;
+        requestResponse = RequestResponse.Ok;
+      } else {
+        status = 252;
+        requestResponse = RequestResponse.FailedRequest;
+      }
+    } catch (UnknownUserException e) {
+      status = 251;
+      requestResponse = RequestResponse.UnknownId;
+    }
+
     // Set response
+    response.setContentType(jsonContentType);
+    response.setStatus(status);
+
+    PrintWriter out = response.getWriter();
+    JsonWriter writer = new JsonWriter(out);
+    gson = gsonBuilder.create();
+    writer.setIndent("  ");
+    writer.beginObject();
+    writer.name("id").value(gson.toJson(id));
+    writer.name("action").value(gson.toJson(action));
+    writer.name("result").value(gson.toJson(requestResponse));
+    writer.endObject();
+    writer.close();
+  }
+
+  /**
+   * Get the attendance activity.
+   * @param target
+   * @param request 
+   * @param response
+   * @throws IOException
+   */
+  private void handleGetActivity(String target, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    if (!checkJsonContentType(response, request.getContentType())) {
+      return;
+    }
+
+    // Parse JSON content
+    boolean value = false;
+    GsonBuilder gsonBuilder = new GsonBuilder().setPrettyPrinting();
+    Gson gson = gsonBuilder.create();
+    JsonReader reader = new JsonReader(request.getReader());
+    reader.beginObject();
+    while (reader.hasNext()) {
+      String name = reader.nextName();
+      switch (name) {
+        case "getActivity":
+          value = reader.nextBoolean();
+          break;
+        default:
+          reader.close();
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+          return;
+      }
+    }
+    reader.endObject();
+    reader.close();
+
+    // Set response
+    response.setContentType(jsonContentType);
+    int status = HttpServletResponse.SC_OK;
+    RequestResponse requestResponse = RequestResponse.Ok;
+    response.setStatus(status);
+
+    CheckInActivity activity = dataStore.getActivity();
+    PrintWriter out = response.getWriter();
+    JsonWriter writer = new JsonWriter(out);
+    gson = gsonBuilder.create();
+    writer.setIndent("  ");
+    writer.beginObject();
+    writer.name("activity").value(gson.toJson(activity));
+    writer.name("result").value(gson.toJson(requestResponse));
+    writer.endObject();
+    writer.close();
+  }
+
+  /**
+   * Set the attendance activity.
+   * @param target
+   * @param request 
+   * @param response
+   * @throws IOException
+   */
+  private void handleSetActivity(String target, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    if (!checkJsonContentType(response, request.getContentType())) {
+      return;
+    }
+
+    // Parse JSON content
+    CheckInActivity activity = null;
+    GsonBuilder gsonBuilder = new GsonBuilder().setPrettyPrinting();
+    Gson gson = gsonBuilder.create();
+    JsonReader reader = new JsonReader(request.getReader());
+    reader.beginObject();
+    while (reader.hasNext()) {
+      String name = reader.nextName();
+      switch (name) {
+        case "activity":
+          try {
+            activity = gson.fromJson(reader.nextString(), CheckInActivity.class);
+          } catch (JsonSyntaxException e) {
+            reader.close();
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+          }
+          //action = Action.valueOf(reader.nextString());
+          break;
+        default:
+          reader.close();
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+          return;
+      }
+    }
+    reader.endObject();
+    reader.close();
+
+    // Set response
+    dataStore.setActivity(activity);
+    response.setContentType(jsonContentType);
+    int status = HttpServletResponse.SC_OK;
+    RequestResponse requestResponse = RequestResponse.Ok;
+    response.setStatus(status);
+
+    PrintWriter out = response.getWriter();
+    JsonWriter writer = new JsonWriter(out);
+    gson = gsonBuilder.create();
+    writer.setIndent("  ");
+    writer.beginObject();
+    writer.name("activity").value(gson.toJson(activity));
+    writer.name("result").value(gson.toJson(requestResponse));
+    writer.endObject();
+    writer.close();
+  }
+
+  /**
+   * Find a person by name.
+   * @param target
+   * @param request 
+   * @param response
+   * @throws IOException
+   */
+  private void handleAddPerson(String target, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    if (!checkJsonContentType(response, request.getContentType())) {
+      return;
+    }
+
+    // Parse JSON content
+    String firstName = null;
+    String lastName = null;
+    GsonBuilder gsonBuilder = new GsonBuilder().setPrettyPrinting();
+    Gson gson = gsonBuilder.create();
+    JsonReader reader = new JsonReader(request.getReader());
+    reader.beginObject();
+    while (reader.hasNext()) {
+      String name = reader.nextName();
+      switch (name) {
+        case "firstName":
+          firstName = reader.nextString();
+          break;
+        case "lastName":
+          lastName = reader.nextString();
+          break;
+        default:
+          reader.close();
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+          return;
+      }
+    }
+    reader.endObject();
+    reader.close();
+
+    // Set response
+    Person person = dataStore.addUser(firstName, lastName);
     response.setContentType(jsonContentType);
     int status;
     RequestResponse requestResponse;
-    if (id > 0) {
+    if (person != null) {
+      status = HttpServletResponse.SC_OK;
+      requestResponse = RequestResponse.Ok;
+    } else {
+      status = 252;
+      requestResponse = RequestResponse.FailedRequest;
+    }
+    response.setStatus(status);
+
+    PrintWriter out = response.getWriter();
+    JsonWriter writer = new JsonWriter(out);
+    gson = gsonBuilder.create();
+    writer.setIndent("  ");
+    writer.beginObject();
+    writer.name("firstName").jsonValue(gson.toJson(firstName));
+    writer.name("lastName").jsonValue(gson.toJson(lastName));
+    writer.name("person").value(gson.toJson(person));
+    writer.name("result").value(gson.toJson(requestResponse));
+    writer.endObject();
+    writer.close();
+  }
+
+  /**
+   * Find a person by name.
+   * @param target
+   * @param request 
+   * @param response
+   * @throws IOException
+   */
+  private void handleFindPerson(String target, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    if (!checkJsonContentType(response, request.getContentType())) {
+      return;
+    }
+
+    // Parse JSON content
+    String firstName = null;
+    String lastName = null;
+    GsonBuilder gsonBuilder = new GsonBuilder().setPrettyPrinting();
+    Gson gson = gsonBuilder.create();
+    JsonReader reader = new JsonReader(request.getReader());
+    reader.beginObject();
+    while (reader.hasNext()) {
+      String name = reader.nextName();
+      switch (name) {
+        case "firstName":
+          firstName = reader.nextString();
+          break;
+        case "lastName":
+          lastName = reader.nextString();
+          break;
+        default:
+          reader.close();
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+          return;
+      }
+    }
+    reader.endObject();
+    reader.close();
+
+    // Set response
+    Person person = dataStore.findPerson(firstName, lastName);
+    response.setContentType(jsonContentType);
+    int status;
+    RequestResponse requestResponse;
+    if (person != null) {
       // Success
       status = HttpServletResponse.SC_OK;
       requestResponse = RequestResponse.Ok;
@@ -170,124 +428,12 @@ public class CheckInHandler extends AbstractHandler {
     gson = gsonBuilder.create();
     writer.setIndent("  ");
     writer.beginObject();
-    writer.name("id").value(gson.toJson(id));
-    writer.name("action").value(gson.toJson(action));
+    writer.name("firstName").jsonValue(gson.toJson(firstName));
+    writer.name("lastName").jsonValue(gson.toJson(lastName));
+    writer.name("person").value(gson.toJson(person));
     writer.name("result").value(gson.toJson(requestResponse));
     writer.endObject();
     writer.close();
-  }
-
-  /**
-   * Find a person by name.
-   * @param target
-   * @param request 
-   * @param response
-   * @throws IOException
-   */
-  private void handleFindPerson(String target, HttpServletRequest request, HttpServletResponse response) throws IOException {
-    response.setContentType(jsonContentType);
-    response.setStatus(HttpServletResponse.SC_OK);
-
-    PrintWriter out = response.getWriter();
-
-    String firstName = null;
-    String lastName = null;
-    Enumeration<String> names = request.getParameterNames();
-    while (names.hasMoreElements()) {
-      String name = names.nextElement();
-      String[] values = request.getParameterValues(name);
-      switch (name) {
-        case "firstName":
-          if (values.length > 0) {
-            firstName = values[0];
-            for (int i = 1; i < values.length; i++) {
-              firstName += " " + values[i];
-            }
-          }
-          break;
-        case "lastName":
-          if (values.length > 0) {
-            lastName = values[0];
-            for (int i = 1; i < values.length; i++) {
-              lastName += " " + values[i];
-            }
-          }
-          break;
-        default:
-          response.setContentType(htmlContentType);
-          response.setStatus(HttpServletResponse.SC_NOT_ACCEPTABLE);
-          out.println("<html><head><title>Find person.</title></head>");
-          out.println("<body><p>Unknown parameter name: " + name + "</p></body></html>");
-          return;
-      }
-    }
-
-    //out.println("<html><head><title>Find person.</title></head>");
-    //while (names.hasMoreElements()) {
-    //  String name = names.nextElement();
-    //  String[] values = request.getParameterValues(name);
-    //  out.println("<p>" + name + " " + Arrays.toString(values) + "</p>");
-    //}
-    //out.println("<body><p>The person is " + firstName + " " + lastName + ".</p>");
-    //out.println("<p>You accessed path: " + target + "</p>");
-    //out.println("</body></html>");
-
-    JsonWriter writer = new JsonWriter(out);
-    Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    writer.setIndent("  ");
-    writer.beginObject();
-    writer.name("firstName").value(gson.toJson(firstName));
-    writer.name("lastName").value(gson.toJson(lastName));
-    writer.endObject();
-    writer.close();
-  }
-
-  /**
-   * Request current time.
-   * @param target
-   * @param response
-   * @throws IOException 
-   */
-  private void handleTime(String target, HttpServletResponse response) throws IOException {
-    PrintWriter out = response.getWriter();
-    out.println("<html><head><title>Time request.</title></head>");
-    out.println("<body><p>The current time is " + Calendar.getInstance().getTime() + ".</p>");
-    out.println("<p>You accessed path: " + target + "</p>");
-    out.println("</body></html>");
-  }
-
-  /**
-   * Response to a GET request for 'b'.
-   * @param target
-   * @param response
-   * @throws IOException 
-   */
-  private void handleB(String target, HttpServletResponse response) throws IOException {
-    PrintWriter out = response.getWriter();
-    out.println("<html><head><title>Request for b.</title></head>");
-    out.println("<body><p>This is a test for b.</p>");
-    out.println("<p>You accessed path: " + target + "</p>");
-    out.println("</body></html>");
-  }
-
-  /**
-   * Response to a GET request for '/' (root).
-   * @param target
-   * @param response
-   * @throws IOException 
-   */
-  private void handleRoot(String target, HttpServletResponse response) throws IOException {
-    PrintWriter out = response.getWriter();
-    out.println("<html><head><title>" + greeting + "</title></head>");
-    out.println("<body>");
-    out.println("<h1>" + greeting + "</h1>");
-    if (body != null) {
-      out.println(body);
-    } else {
-      out.println("<p>This is the root of the " + greeting + " handler</p>");
-      out.println("<p>You accessed path: " + target + "</p>");
-    }
-    out.println("</body></html>");
   }
 
   /**
@@ -323,6 +469,23 @@ public class CheckInHandler extends AbstractHandler {
       writer.name(name).value(gson.toJson(values));
     }
     writer.close();
+  }
+
+  private boolean checkJsonContentType(HttpServletResponse response, String contentType) throws IOException {
+    if (!contentType.equalsIgnoreCase(jsonContentType)) {
+      // Did not receive JSON request; reply with error
+      response.setContentType(htmlContentType);
+      response.sendError(HttpServletResponse.SC_NOT_ACCEPTABLE);
+      PrintWriter out = response.getWriter();
+      out.println("<html><head><title>Invalid Content For Request.</title></head>");
+      out.println("<body>");
+      out.println("<h1>Invalid Content For Request</h1>");
+      out.println("<p>Expected content type: " + jsonContentType + "</p>");
+      out.println("<p>Received content type: " + contentType + "</p>");
+      out.println("</body></html>");
+      return false;
+    }
+    return true;
   }
 
 }

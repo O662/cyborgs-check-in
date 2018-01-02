@@ -16,6 +16,7 @@ import org.cyborgs3335.checkin.PersonCheckInEvent;
 import org.cyborgs3335.checkin.UnknownUserException;
 import org.cyborgs3335.checkin.CheckInEvent.Status;
 import org.cyborgs3335.checkin.messenger.IMessenger.RequestResponse;
+import org.cyborgs3335.checkin.server.http.HttpMessenger;
 import org.cyborgs3335.checkin.server.local.LocalMessenger;
 
 
@@ -115,7 +116,7 @@ public class CompositeMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#findPerson(java.lang.String, java.lang.String)
    */
   @Override
-  public Person findPerson(String firstName, String lastName) {
+  public Person findPerson(String firstName, String lastName) throws IOException {
     Person person1 = messenger1.findPerson(firstName, lastName);
     Person person2 = messenger2.findPerson(firstName, lastName);
     if (!person1.equals(person2)) {
@@ -129,7 +130,7 @@ public class CompositeMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#addPerson(java.lang.String, java.lang.String)
    */
   @Override
-  public Person addPerson(String firstName, String lastName) {
+  public Person addPerson(String firstName, String lastName) throws IOException {
     Person person1 = messenger1.addPerson(firstName, lastName);
     Person person2 = messenger2.addPerson(firstName, lastName);
     if (!person1.equals(person2)) {
@@ -143,7 +144,7 @@ public class CompositeMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#setActivity(org.cyborgs3335.checkin.CheckInActivity)
    */
   @Override
-  public void setActivity(CheckInActivity activity) {
+  public void setActivity(CheckInActivity activity) throws IOException {
     messenger1.setActivity(activity);
     messenger2.setActivity(activity);
   }
@@ -152,7 +153,7 @@ public class CompositeMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#getActivity()
    */
   @Override
-  public CheckInActivity getActivity() {
+  public CheckInActivity getActivity() throws IOException {
     CheckInActivity activity1 = messenger1.getActivity();
     CheckInActivity activity2 = messenger2.getActivity();
     if (!activity1.equals(activity2)) {
@@ -285,7 +286,7 @@ public class CompositeMessenger implements IMessenger {
    * @throws IOException 
    */
   public static void main(String[] args) throws IOException, UnknownUserException {
-    IMessenger m1 = new HttpMessenger("http://localhost:8080/attendance/request");
+    IMessenger m1 = new HttpMessenger("http://localhost:8080/attendance");
     IMessenger m2 = new LocalMessenger("/tmp/check-in-server.db");
     IMessenger m = new CompositeMessenger(m1, m2);
     try {
