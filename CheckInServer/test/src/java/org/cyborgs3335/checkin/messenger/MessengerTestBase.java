@@ -7,6 +7,7 @@ import java.io.IOException;
 
 import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent;
+import org.cyborgs3335.checkin.CheckInEvent.Status;
 import org.cyborgs3335.checkin.Person;
 import org.cyborgs3335.checkin.UnknownUserException;
 import org.cyborgs3335.checkin.messenger.IMessenger.RequestResponse;
@@ -59,6 +60,33 @@ public abstract class MessengerTestBase {
   }
 
   @Test
+  public final void testCheckOutAll() {
+    IMessenger m = getNewMessenger();
+    try {
+      Person person1 = m.addPerson("Isaac", "Newton");
+      Person person2 = m.addPerson("Albert", "Einstein");
+      RequestResponse response = m.checkIn(person1.getId());
+      assertEquals(RequestResponse.Ok, response);
+      response = m.checkIn(person2.getId());
+      assertEquals(RequestResponse.Ok, response);
+
+      response = m.checkOutAll();
+      assertEquals(RequestResponse.Ok, response);
+
+      Status status = m.getCheckInStatus(person1.getId());
+      assertEquals(Status.CheckedOut, status);
+      status = m.getCheckInStatus(person2.getId());
+      assertEquals(Status.CheckedOut, status);
+    } catch (IOException e) {
+      e.printStackTrace();
+      fail();
+    } catch (UnknownUserException e) {
+      e.printStackTrace();
+      fail();
+    }
+  }
+
+  @Test
   public final void testSetGetActivity() {
     IMessenger m = getNewMessenger();
     try {
@@ -94,10 +122,58 @@ public abstract class MessengerTestBase {
       String firstName = "John1";
       String lastName = "Doe1";
       Person person = m.addPerson(firstName, lastName);
+      assertEquals(firstName, person.getFirstName());
+      assertEquals(lastName, person.getLastName());
       Person personAdd = m.findPerson(firstName, lastName);
       assertEquals(firstName, personAdd.getFirstName());
       assertEquals(lastName, personAdd.getLastName());
     } catch (IOException e) {
+      e.printStackTrace();
+      fail();
+    }
+  }
+
+  @Test
+  public final void testGetCheckInStatus() {
+    IMessenger m = getNewMessenger();
+    try {
+      Person person1 = m.addPerson("Enrico", "Fermi");
+      RequestResponse response = m.checkIn(person1.getId());
+      assertEquals(RequestResponse.Ok, response);
+      Status status = m.getCheckInStatus(person1.getId());
+      assertEquals(Status.CheckedIn, status);
+
+      response = m.checkOut(person1.getId());
+      assertEquals(RequestResponse.Ok, response);
+      status = m.getCheckInStatus(person1.getId());
+      assertEquals(Status.CheckedOut, status);
+    } catch (IOException e) {
+      e.printStackTrace();
+      fail();
+    } catch (UnknownUserException e) {
+      e.printStackTrace();
+      fail();
+    }
+  }
+
+  @Test
+  public final void testToggleCheckInStatus() {
+    IMessenger m = getNewMessenger();
+    try {
+      Person person1 = m.addPerson("Edward", "Teller");
+      RequestResponse response = m.checkIn(person1.getId());
+      assertEquals(RequestResponse.Ok, response);
+      Status status = m.getCheckInStatus(person1.getId());
+      assertEquals(Status.CheckedIn, status);
+
+      status = m.toggleCheckInStatus(person1.getId());
+      assertEquals(Status.CheckedOut, status);
+      status = m.getCheckInStatus(person1.getId());
+      assertEquals(Status.CheckedOut, status);
+    } catch (IOException e) {
+      e.printStackTrace();
+      fail();
+    } catch (UnknownUserException e) {
       e.printStackTrace();
       fail();
     }

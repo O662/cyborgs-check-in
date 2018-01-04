@@ -13,8 +13,6 @@ import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.CheckInEvent.Status;
 import org.cyborgs3335.checkin.messenger.IMessenger;
-import org.cyborgs3335.checkin.messenger.IMessenger.Action;
-import org.cyborgs3335.checkin.messenger.IMessenger.RequestResponse;
 import org.cyborgs3335.checkin.Person;
 import org.cyborgs3335.checkin.PersonCheckInEvent;
 import org.cyborgs3335.checkin.UnknownUserException;
@@ -69,8 +67,38 @@ public class HttpMessenger implements IMessenger {
    */
   @Override
   public RequestResponse checkOutAll() throws IOException {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("not implemented");
+    // Serialize to JSON
+    StringWriter stringWriter = new StringWriter();
+    JsonWriter writer = new JsonWriter(stringWriter);
+    Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    writer.setIndent("  ");
+    writer.beginObject();
+    writer.name("checkOutAll").jsonValue(gson.toJson(true));
+    writer.endObject();
+    writer.close();
+    String content = stringWriter.toString();
+
+    // Send to server
+    LOG.info("request type: " + JSON.toString());
+    RequestBody body = RequestBody.create(JSON, content);
+    Request request = new Request.Builder().url(serverUrl + "/checkOutAll").post(body).build();
+    Response response = client.newCall(request).execute();
+    LOG.info("Received response code " + response.code() + " with message " + response.message());
+    LOG.info("Request body:\n" + response.peekBody(100L*1024L).string());
+
+    // Process response from server
+    if (response.isSuccessful()) {
+      RequestResponse requestResponse = parseResponse(response);
+      response.close();
+      if (requestResponse.equals(RequestResponse.UnknownId)) {
+        throw new IOException("Received an unexpected Unknown ID response for checkOutAll.");
+      }
+      return requestResponse;
+    }
+
+    // Throw exception? How to distinguish unsuccessful requests?
+    response.close();
+    return RequestResponse.FailedRequest;
   }
 
   /* (non-Javadoc)
@@ -78,7 +106,33 @@ public class HttpMessenger implements IMessenger {
    */
   @Override
   public Status toggleCheckInStatus(long id) throws IOException, UnknownUserException {
-    throw new UnsupportedOperationException("not implemented");
+    // Serialize to JSON
+    StringWriter stringWriter = new StringWriter();
+    JsonWriter writer = new JsonWriter(stringWriter);
+    Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    writer.setIndent("  ");
+    writer.beginObject();
+    writer.name("id").value(gson.toJson(id));
+    writer.endObject();
+    writer.close();
+    String content = stringWriter.toString();
+
+    // Send to server
+    LOG.info("request type: " + JSON.toString());
+    RequestBody body = RequestBody.create(JSON, content);
+    Request request = new Request.Builder().url(serverUrl + "/toggleCheckInStatus").post(body).build();
+    Response response = client.newCall(request).execute();
+    LOG.info("Received response code " + response.code() + " with message " + response.message());
+    LOG.info("Request body:\n" + response.peekBody(100L*1024L).string());
+
+    // Process response from server
+    if (!response.isSuccessful()) {
+      response.close();
+      throw new IOException("Received unsuccessful response code " + response.code() + " with message " + response.message());
+    }
+    Status status = parseCheckInStatusResponse(id, response);
+    response.close();
+    return status;
   }
 
   /* (non-Javadoc)
@@ -86,7 +140,33 @@ public class HttpMessenger implements IMessenger {
    */
   @Override
   public Status getCheckInStatus(long id) throws IOException, UnknownUserException {
-    throw new UnsupportedOperationException("not implemented");
+    // Serialize to JSON
+    StringWriter stringWriter = new StringWriter();
+    JsonWriter writer = new JsonWriter(stringWriter);
+    Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    writer.setIndent("  ");
+    writer.beginObject();
+    writer.name("id").value(gson.toJson(id));
+    writer.endObject();
+    writer.close();
+    String content = stringWriter.toString();
+
+    // Send to server
+    LOG.info("request type: " + JSON.toString());
+    RequestBody body = RequestBody.create(JSON, content);
+    Request request = new Request.Builder().url(serverUrl + "/getCheckInStatus").post(body).build();
+    Response response = client.newCall(request).execute();
+    LOG.info("Received response code " + response.code() + " with message " + response.message());
+    LOG.info("Request body:\n" + response.peekBody(100L*1024L).string());
+
+    // Process response from server
+    if (!response.isSuccessful()) {
+      response.close();
+      throw new IOException("Received unsuccessful response code " + response.code() + " with message " + response.message());
+    }
+    Status status = parseCheckInStatusResponse(id, response);
+    response.close();
+    return status;
   }
 
   /* (non-Javadoc)
@@ -117,7 +197,7 @@ public class HttpMessenger implements IMessenger {
     // Process response from server
     if (!response.isSuccessful()) {
       response.close();
-      throw new IOException();
+      throw new IOException("Received unsuccessful response code " + response.code() + " with message " + response.message());
     }
     Person person = parsePersonResponse(firstName, lastName, response);
     response.close();
@@ -152,7 +232,7 @@ public class HttpMessenger implements IMessenger {
     // Process response from server
     if (!response.isSuccessful()) {
       response.close();
-      throw new IOException();
+      throw new IOException("Received unsuccessful response code " + response.code() + " with message " + response.message());
     }
     Person person = parsePersonResponse(firstName, lastName, response);
     response.close();
@@ -187,7 +267,7 @@ public class HttpMessenger implements IMessenger {
     // Process response from server
     if (!response.isSuccessful()) {
       response.close();
-      throw new IOException();
+      throw new IOException("Received unsuccessful response code " + response.code() + " with message " + response.message());
     }
     RequestResponse requestResponse = parseActivityResponse(activity, response);
     response.close();
@@ -224,7 +304,7 @@ public class HttpMessenger implements IMessenger {
     // Process response from server
     if (!response.isSuccessful()) {
       response.close();
-      throw new IOException();
+      throw new IOException("Received unsuccessful response code " + response.code() + " with message " + response.message());
     }
     CheckInActivity activity = parseActivityResponse(response);
     response.close();
@@ -353,6 +433,41 @@ public class HttpMessenger implements IMessenger {
     return RequestResponse.FailedRequest;
   }
 
+  private RequestResponse parseResponse(Response response) throws IOException {
+    MediaType type = response.body().contentType();
+    if (!type.type().equalsIgnoreCase(JSON.type()) || !type.subtype().equalsIgnoreCase(JSON.subtype()) ||
+        type.charset().compareTo(JSON.charset()) != 0) {
+      throw new IOException("Unknown content type for response: " + type.toString());
+    }
+    Reader responseReader = response.body().charStream();
+
+    // Parse JSON content
+    RequestResponse requestResponse = null;
+    GsonBuilder gsonBuilder = new GsonBuilder().setPrettyPrinting();
+    Gson gson = gsonBuilder.create();
+    JsonReader reader = new JsonReader(responseReader);
+    reader.beginObject();
+    while (reader.hasNext()) {
+      String name = reader.nextName();
+      switch (name) {
+        case "result":
+          try {
+            requestResponse = gson.fromJson(reader.nextString(), RequestResponse.class);
+          } catch (JsonSyntaxException e) {
+            reader.close();
+            throw new IOException("Invalid request response in response from server", e);
+          }
+          break;
+        default:
+          reader.close();
+          throw new IOException("Unknown property name in response from server: " + name);
+      }
+    }
+    reader.endObject();
+    reader.close();
+    return requestResponse;
+  }
+
   private RequestResponse parseResponse(long id, Action action, Response response) throws IOException {
     MediaType type = response.body().contentType();
     if (!type.type().equalsIgnoreCase(JSON.type()) || !type.subtype().equalsIgnoreCase(JSON.subtype()) ||
@@ -405,6 +520,63 @@ public class HttpMessenger implements IMessenger {
     reader.endObject();
     reader.close();
     return requestResponse;
+  }
+
+  private Status parseCheckInStatusResponse(long id, Response response) throws IOException, UnknownUserException {
+    MediaType type = response.body().contentType();
+    if (!type.type().equalsIgnoreCase(JSON.type()) || !type.subtype().equalsIgnoreCase(JSON.subtype()) ||
+        type.charset().compareTo(JSON.charset()) != 0) {
+      throw new IOException("Unknown content type for response: " + type.toString());
+    }
+    Reader responseReader = response.body().charStream();
+
+    // Parse JSON content
+    long idResponse = -1;
+    Status statusResponse = null;
+    RequestResponse requestResponse = null;
+    GsonBuilder gsonBuilder = new GsonBuilder().setPrettyPrinting();
+    Gson gson = gsonBuilder.create();
+    JsonReader reader = new JsonReader(responseReader);
+    reader.beginObject();
+    while (reader.hasNext()) {
+      String name = reader.nextName();
+      switch (name) {
+        case "id":
+          idResponse = reader.nextLong();
+          if (idResponse != id) {
+            throw new IOException("Expected id " + id + " but received id " + idResponse + " in response from server");
+          }
+          break;
+        case "status":
+          try {
+            statusResponse = gson.fromJson(reader.nextString(), Status.class);
+          } catch (JsonSyntaxException e) {
+            reader.close();
+            throw new IOException("Invalid status in response from server", e);
+          }
+          break;
+        case "result":
+          try {
+            requestResponse = gson.fromJson(reader.nextString(), RequestResponse.class);
+          } catch (JsonSyntaxException e) {
+            reader.close();
+            throw new IOException("Invalid request response in response from server", e);
+          }
+          break;
+        default:
+          reader.close();
+          throw new IOException("Unknown property name in response from server: " + name);
+      }
+    }
+    reader.endObject();
+    reader.close();
+    if (requestResponse.compareTo(RequestResponse.Ok) != 0) {
+      if (requestResponse.equals(RequestResponse.UnknownId)) {
+        throw new UnknownUserException("Expected id " + id + " but received id " + idResponse);
+      }
+      throw new IOException("Request successfully sent, but received bad response: " + requestResponse);
+    }
+    return statusResponse;
   }
 
   private RequestResponse parseActivityResponse(CheckInActivity activity, Response response) throws IOException {

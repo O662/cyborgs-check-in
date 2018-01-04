@@ -9,7 +9,9 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.cyborgs3335.checkin.AttendanceRecord;
 import org.cyborgs3335.checkin.CheckInActivity;
+import org.cyborgs3335.checkin.CheckInEvent.Status;
 import org.cyborgs3335.checkin.Person;
 import org.cyborgs3335.checkin.UnknownUserException;
 import org.cyborgs3335.checkin.messenger.IMessenger.Action;
@@ -46,6 +48,15 @@ public class CheckInHandler extends AbstractHandler {
     switch (target) {
       case "/attendance/request":
         handleAttendanceRequest(target, request, response);
+        break;
+      case "/attendance/checkOutAll":
+        handleCheckOutAll(target, request, response);
+        break;
+      case "/attendance/toggleCheckInStatus":
+        handleToggleCheckInStatus(target, request, response);
+        break;
+      case "/attendance/getCheckInStatus":
+        handleGetCheckInStatus(target, request, response);
         break;
       case "/attendance/getActivity":
         handleGetActivity(target, request, response);
@@ -190,6 +201,180 @@ public class CheckInHandler extends AbstractHandler {
     writer.beginObject();
     writer.name("id").value(gson.toJson(id));
     writer.name("action").value(gson.toJson(action));
+    writer.name("result").value(gson.toJson(requestResponse));
+    writer.endObject();
+    writer.close();
+  }
+
+  /**
+   * Check out all persons.
+   * @param target
+   * @param request 
+   * @param response
+   * @throws IOException
+   */
+  private void handleCheckOutAll(String target, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    if (!checkJsonContentType(response, request.getContentType())) {
+      return;
+    }
+
+    // Parse JSON content
+    boolean value = false;
+    GsonBuilder gsonBuilder = new GsonBuilder().setPrettyPrinting();
+    Gson gson = gsonBuilder.create();
+    JsonReader reader = new JsonReader(request.getReader());
+    reader.beginObject();
+    while (reader.hasNext()) {
+      String name = reader.nextName();
+      switch (name) {
+        case "checkOutAll":
+          value = reader.nextBoolean();
+          break;
+        default:
+          reader.close();
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+          return;
+      }
+    }
+    reader.endObject();
+    reader.close();
+
+    // Set response
+    response.setContentType(jsonContentType);
+    int status = HttpServletResponse.SC_OK;
+    RequestResponse requestResponse = RequestResponse.Ok;
+    response.setStatus(status);
+
+    dataStore.checkOutAll();
+    PrintWriter out = response.getWriter();
+    JsonWriter writer = new JsonWriter(out);
+    gson = gsonBuilder.create();
+    writer.setIndent("  ");
+    writer.beginObject();
+    writer.name("result").value(gson.toJson(requestResponse));
+    writer.endObject();
+    writer.close();
+  }
+
+  /**
+   * Toggle the check-in status for a person.
+   * @param target
+   * @param request 
+   * @param response
+   * @throws IOException
+   */
+  private void handleToggleCheckInStatus(String target, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    if (!checkJsonContentType(response, request.getContentType())) {
+      return;
+    }
+
+    // Parse JSON content
+    long id = -1;
+    GsonBuilder gsonBuilder = new GsonBuilder().setPrettyPrinting();
+    Gson gson = gsonBuilder.create();
+    JsonReader reader = new JsonReader(request.getReader());
+    reader.beginObject();
+    while (reader.hasNext()) {
+      String name = reader.nextName();
+      switch (name) {
+        case "id":
+          id = reader.nextLong();
+          break;
+        default:
+          reader.close();
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+          return;
+      }
+    }
+    reader.endObject();
+    reader.close();
+
+    // Complete action
+    int status;
+    RequestResponse requestResponse;
+    Status checkInStatus = null;
+    try {
+      checkInStatus = dataStore.accept(id) ? Status.CheckedIn : Status.CheckedOut;
+    } catch (UnknownUserException e) {
+      status = 251;
+      requestResponse = RequestResponse.UnknownId;
+    }
+    status = HttpServletResponse.SC_OK;
+    requestResponse = RequestResponse.Ok;
+
+    // Set response
+    response.setContentType(jsonContentType);
+    response.setStatus(status);
+
+    PrintWriter out = response.getWriter();
+    JsonWriter writer = new JsonWriter(out);
+    gson = gsonBuilder.create();
+    writer.setIndent("  ");
+    writer.beginObject();
+    writer.name("id").value(gson.toJson(id));
+    writer.name("status").value(gson.toJson(checkInStatus));
+    writer.name("result").value(gson.toJson(requestResponse));
+    writer.endObject();
+    writer.close();
+  }
+
+  /**
+   * Get the check-in status for a person.
+   * @param target
+   * @param request 
+   * @param response
+   * @throws IOException
+   */
+  private void handleGetCheckInStatus(String target, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    if (!checkJsonContentType(response, request.getContentType())) {
+      return;
+    }
+
+    // Parse JSON content
+    long id = -1;
+    GsonBuilder gsonBuilder = new GsonBuilder().setPrettyPrinting();
+    Gson gson = gsonBuilder.create();
+    JsonReader reader = new JsonReader(request.getReader());
+    reader.beginObject();
+    while (reader.hasNext()) {
+      String name = reader.nextName();
+      switch (name) {
+        case "id":
+          id = reader.nextLong();
+          break;
+        default:
+          reader.close();
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+          return;
+      }
+    }
+    reader.endObject();
+    reader.close();
+
+    // Complete action
+    int status;
+    RequestResponse requestResponse;
+    AttendanceRecord record = dataStore.getAttendanceRecord(id);
+    if (record == null) {
+      status = 251;
+      requestResponse = RequestResponse.UnknownId;
+    } else {
+      status = HttpServletResponse.SC_OK;
+      requestResponse = RequestResponse.Ok;
+    }
+    Status checkInStatus = record.getLastEvent().getStatus();
+
+    // Set response
+    response.setContentType(jsonContentType);
+    response.setStatus(status);
+
+    PrintWriter out = response.getWriter();
+    JsonWriter writer = new JsonWriter(out);
+    gson = gsonBuilder.create();
+    writer.setIndent("  ");
+    writer.beginObject();
+    writer.name("id").value(gson.toJson(id));
+    writer.name("status").value(gson.toJson(checkInStatus));
     writer.name("result").value(gson.toJson(requestResponse));
     writer.endObject();
     writer.close();
