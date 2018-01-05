@@ -168,7 +168,7 @@ public class LocalMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#lastCheckInEventToString()
    */
   @Override
-  public String lastCheckInEventToString() {
+  public String lastCheckInEventToString() throws IOException {
     return server.printToString();
   }
 
@@ -176,7 +176,7 @@ public class LocalMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#getLastCheckInEventsSorted()
    */
   @Override
-  public List<PersonCheckInEvent> getLastCheckInEventsSorted() {
+  public List<PersonCheckInEvent> getLastCheckInEventsSorted() throws IOException {
     ArrayList<PersonCheckInEvent> recordList = new ArrayList<PersonCheckInEvent>(server.getIdSet().size());
     for (Long id : server.getIdSet()) {
       AttendanceRecord record = server.getAttendanceRecord(id);

@@ -223,8 +223,8 @@ public class NewUserApp extends JFrame {
   }
 
   private void exitApp() {
-    System.out.println(messenger.lastCheckInEventToString());
     try {
+      System.out.println(messenger.lastCheckInEventToString());
       messenger.close();
     } catch (IOException e) {
       // TODO Auto-generated catch block

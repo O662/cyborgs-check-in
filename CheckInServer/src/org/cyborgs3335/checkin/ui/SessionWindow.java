@@ -260,7 +260,12 @@ public class SessionWindow extends JFrame {
         e1.printStackTrace();
         JOptionPane.showMessageDialog(parent, e1.getMessage(), "Error setting activity", JOptionPane.ERROR_MESSAGE);
       }
-      System.out.println(messenger.lastCheckInEventToString());
+      try {
+        System.out.println(messenger.lastCheckInEventToString());
+      } catch (IOException e1) {
+        System.out.println("Received IOException when fetching check-in events: " + e1.getMessage());
+        e1.printStackTrace();
+      }
       //setVisible(false);
       dispose();
       //} catch (ParseException e1) {

@@ -199,7 +199,7 @@ public class CompositeMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#lastCheckInEventToString()
    */
   @Override
-  public String lastCheckInEventToString() {
+  public String lastCheckInEventToString() throws IOException {
     return messenger1.lastCheckInEventToString() + messenger2.lastCheckInEventToString();
   }
 
@@ -207,7 +207,7 @@ public class CompositeMessenger implements IMessenger {
    * @see org.cyborgs3335.checkin.messenger.IMessenger#getLastCheckInEventsSorted()
    */
   @Override
-  public List<PersonCheckInEvent> getLastCheckInEventsSorted() {
+  public List<PersonCheckInEvent> getLastCheckInEventsSorted() throws IOException {
     List<PersonCheckInEvent> list1 = messenger1.getLastCheckInEventsSorted();
     List<PersonCheckInEvent> list2 = messenger2.getLastCheckInEventsSorted();
     if (list1.size() != list2.size()) {

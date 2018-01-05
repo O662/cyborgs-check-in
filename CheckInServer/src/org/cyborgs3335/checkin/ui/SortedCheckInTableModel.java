@@ -3,6 +3,7 @@ package org.cyborgs3335.checkin.ui;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 //import java.util.ArrayList;
 //import java.util.Collections;
 //import java.util.Comparator;
@@ -52,7 +53,13 @@ public class SortedCheckInTableModel extends AbstractTableModel {
     } else {
       LOG.info("creating table, but no activity set!");
     }
-    recordListNew = messenger.getLastCheckInEventsSorted();
+    try {
+      recordListNew = messenger.getLastCheckInEventsSorted();
+    } catch (IOException e) {
+      recordListNew = new ArrayList<PersonCheckInEvent>();
+      LOG.warning("Received IOException when fetching check-in events: " + e.getMessage());
+      e.printStackTrace();
+    }
     rowCount = recordListNew.size();
 //    rowCount = server.getIdSet().size();
     colCount = 6;

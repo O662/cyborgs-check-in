@@ -25,12 +25,20 @@ public class AttendanceRecord implements Serializable {
   private final DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
 
   /**
+   * Constructor specifying person for attendance record, with an existing event list.
+   * @param person person for this attendance record
+   */
+  public AttendanceRecord(Person person, ArrayList<CheckInEvent> eventList) {
+    this.person = person;
+    this.eventList = eventList;
+  }
+
+  /**
    * Constructor specifying person for attendance record.  Creates empty event list.
    * @param person person for this attendance record
    */
   public AttendanceRecord(Person person) {
-    this.person = person;
-    eventList = new ArrayList<CheckInEvent>();
+    this(person, new ArrayList<CheckInEvent>());
   }
 
   public Person getPerson() {

@@ -202,12 +202,12 @@ public class MainApp implements IDatabaseOperations {
    * @param newPath directory location for saving database
    */
   private synchronized void saveDatabase(String newPath) {
-    if (LOG.isLoggable(Level.FINE)) {
-      String buffer = localMessenger.lastCheckInEventToString();
-      System.out.print(buffer);
-      logDatabase(buffer);
-    }
     try {
+      if (LOG.isLoggable(Level.FINE)) {
+        String buffer = localMessenger.lastCheckInEventToString();
+        System.out.print(buffer);
+        logDatabase(buffer);
+      }
       localMessenger.save(newPath);
       localMessenger.saveJson(newPath);
       //System.out.println("Save complete.");

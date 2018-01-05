@@ -52,9 +52,9 @@ public interface IMessenger {
 
   public void removePropertyChangeListener(String propertyName, PropertyChangeListener listener);
 
-  public String lastCheckInEventToString();
+  public String lastCheckInEventToString() throws IOException;
 
-  public List<PersonCheckInEvent> getLastCheckInEventsSorted();
+  public List<PersonCheckInEvent> getLastCheckInEventsSorted() throws IOException;
 
   public CheckInEvent getLastCheckInEvent(long id) throws IOException, UnknownUserException;
 

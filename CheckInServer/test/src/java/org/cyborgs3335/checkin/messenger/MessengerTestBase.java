@@ -4,11 +4,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.util.List;
 
+import org.cyborgs3335.checkin.AttendanceRecord;
 import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.CheckInEvent.Status;
 import org.cyborgs3335.checkin.Person;
+import org.cyborgs3335.checkin.PersonCheckInEvent;
 import org.cyborgs3335.checkin.UnknownUserException;
 import org.cyborgs3335.checkin.messenger.IMessenger.RequestResponse;
 import org.junit.Test;
@@ -170,6 +173,101 @@ public abstract class MessengerTestBase {
       assertEquals(Status.CheckedOut, status);
       status = m.getCheckInStatus(person1.getId());
       assertEquals(Status.CheckedOut, status);
+    } catch (IOException e) {
+      e.printStackTrace();
+      fail();
+    } catch (UnknownUserException e) {
+      e.printStackTrace();
+      fail();
+    }
+  }
+
+  @Test
+  public final void testLastCheckInEventToString() {
+    IMessenger m = getNewMessenger();
+    try {
+      m.setActivity(CheckInEvent.DEFAULT_ACTIVITY);
+      Person p = m.addPerson("Niels", "Bohr");
+      RequestResponse response = m.checkIn(p.getId());
+      assertEquals(RequestResponse.Ok, response);
+      String string = m.lastCheckInEventToString();
+      if (!string.startsWith("Activity DEFAULT Start Time 1969/12/31 18:00:00 -0600 End Time 292278994/08/17 01:12:55 -0600\nid ")) {
+        System.out.println("lastCheckInEventToString: " + string);
+        fail();
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+      fail();
+    } catch (UnknownUserException e) {
+      e.printStackTrace();
+      fail();
+    }
+  }
+
+  @Test
+  public final void testGetLastCheckInEventsSorted() {
+    IMessenger m = getNewMessenger();
+    try {
+      m.setActivity(CheckInEvent.DEFAULT_ACTIVITY);
+      Person p = m.addPerson("Werner", "Heisenberg");
+      RequestResponse response = m.checkIn(p.getId());
+      assertEquals(RequestResponse.Ok, response);
+      response = m.checkOut(p.getId());
+      assertEquals(RequestResponse.Ok, response);
+      List<PersonCheckInEvent> list = m.getLastCheckInEventsSorted();
+      for (PersonCheckInEvent pcie : list) {
+        if (pcie.getPerson().equals(p)) {
+          assertEquals(CheckInEvent.DEFAULT_ACTIVITY, pcie.getCheckInEvent().getActivity());
+          assertEquals(Status.CheckedOut, pcie.getCheckInEvent().getStatus());          
+        }
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+      fail();
+    } catch (UnknownUserException e) {
+      e.printStackTrace();
+      fail();
+    }
+  }
+
+  @Test
+  public final void testGetLastCheckInEvent() {
+    IMessenger m = getNewMessenger();
+    //public CheckInEvent getLastCheckInEvent(long id) throws IOException, UnknownUserException;
+    try {
+      m.setActivity(CheckInEvent.DEFAULT_ACTIVITY);
+      Person p = m.addPerson("Paul", "Dirac");
+      RequestResponse response = m.checkIn(p.getId());
+      assertEquals(RequestResponse.Ok, response);
+      response = m.checkOut(p.getId());
+      assertEquals(RequestResponse.Ok, response);
+      CheckInEvent event = m.getLastCheckInEvent(p.getId());
+      assertEquals(CheckInEvent.DEFAULT_ACTIVITY, event.getActivity());
+      assertEquals(Status.CheckedOut, event.getStatus());
+    } catch (IOException e) {
+      e.printStackTrace();
+      fail();
+    } catch (UnknownUserException e) {
+      e.printStackTrace();
+      fail();
+    }
+  }
+
+  @Test
+  public final void testGetAttendanceRecord() {
+    IMessenger m = getNewMessenger();
+    try {
+      m.setActivity(CheckInEvent.DEFAULT_ACTIVITY);
+      Person p = m.addPerson("Marie", "Curie");
+      RequestResponse response = m.checkIn(p.getId());
+      assertEquals(RequestResponse.Ok, response);
+      response = m.checkOut(p.getId());
+      assertEquals(RequestResponse.Ok, response);
+      AttendanceRecord record = m.getAttendanceRecord(p.getId());
+      assertEquals(true, record.areEventsConsistent());
+      assertEquals(p, record.getPerson());
+      assertEquals(CheckInEvent.DEFAULT_ACTIVITY, record.getLastEvent().getActivity());
+      assertEquals(Status.CheckedOut, record.getLastEvent().getStatus());
     } catch (IOException e) {
       e.printStackTrace();
       fail();

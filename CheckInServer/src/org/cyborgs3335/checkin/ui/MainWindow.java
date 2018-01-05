@@ -414,8 +414,19 @@ public class MainWindow extends JFrame {
           JScrollPane scrollPane = new JScrollPane(/*recordArea*/table);
           table.setFillsViewportHeight(true);
           scrollPane.setPreferredSize(new Dimension(880, 450));
-          String buffer = dbOperations.getMessenger().lastCheckInEventToString();
-          recordArea.append(buffer);
+          try {
+            String buffer = dbOperations.getMessenger().lastCheckInEventToString();
+            recordArea.append(buffer);
+          } catch (IOException e1) {
+            String buffer = "Received IOException when fetching check-in events:\n"
+                + e1.getMessage() + "\n";
+            for (StackTraceElement element : e1.getStackTrace()) {
+              buffer += "\tat " + element.toString() + "\n";
+            }
+            recordArea.append(buffer);
+            System.out.println("Received IOException when fetching check-in events:");
+            e1.printStackTrace();
+          }
           //JOptionPane.showMessageDialog(viewMenu, scrollPane, "Attendance Records", JOptionPane.PLAIN_MESSAGE);
           JPanel panel = new JPanel(new BorderLayout(5, 5));
           JPanel bpanel = new JPanel();

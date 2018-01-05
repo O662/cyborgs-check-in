@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Enumeration;
+import java.util.List;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -11,8 +12,10 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.cyborgs3335.checkin.AttendanceRecord;
 import org.cyborgs3335.checkin.CheckInActivity;
+import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.CheckInEvent.Status;
 import org.cyborgs3335.checkin.Person;
+import org.cyborgs3335.checkin.PersonCheckInEvent;
 import org.cyborgs3335.checkin.UnknownUserException;
 import org.cyborgs3335.checkin.messenger.IMessenger.Action;
 import org.cyborgs3335.checkin.messenger.IMessenger.RequestResponse;
@@ -69,6 +72,18 @@ public class CheckInHandler extends AbstractHandler {
         break;
       case "/attendance/findPerson":
         handleFindPerson(target, request, response);
+        break;
+      case "/attendance/lastCheckInEventToString":
+        handleLastCheckInEventToString(target, request, response);
+        break;
+      case "/attendance/getLastCheckInEventsSorted":
+        handleGetLastCheckInEventsSorted(target, request, response);
+        break;
+      case "/attendance/getLastCheckInEvent":
+        handleGetLastCheckInEvent(target, request, response);
+        break;
+      case "/attendance/getAttendanceRecord":
+        handleGetAttendanceRecord(target, request, response);
         break;
       case "/":
         handleRoot(target, response);
@@ -616,6 +631,244 @@ public class CheckInHandler extends AbstractHandler {
     writer.name("firstName").jsonValue(gson.toJson(firstName));
     writer.name("lastName").jsonValue(gson.toJson(lastName));
     writer.name("person").value(gson.toJson(person));
+    writer.name("result").value(gson.toJson(requestResponse));
+    writer.endObject();
+    writer.close();
+  }
+
+  /**
+   * Get the last check-in events and return as a String.
+   * @param target
+   * @param request 
+   * @param response
+   * @throws IOException
+   */
+  private void handleLastCheckInEventToString(String target, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    if (!checkJsonContentType(response, request.getContentType())) {
+      return;
+    }
+
+    // Parse JSON content
+    boolean value = false;
+    GsonBuilder gsonBuilder = new GsonBuilder().setPrettyPrinting();
+    Gson gson = gsonBuilder.create();
+    JsonReader reader = new JsonReader(request.getReader());
+    reader.beginObject();
+    while (reader.hasNext()) {
+      String name = reader.nextName();
+      switch (name) {
+        case "lastCheckInEventToString":
+          value = reader.nextBoolean();
+          break;
+        default:
+          reader.close();
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+          return;
+      }
+    }
+    reader.endObject();
+    reader.close();
+
+    // Set response
+    response.setContentType(jsonContentType);
+    int status = HttpServletResponse.SC_OK;
+    RequestResponse requestResponse = RequestResponse.Ok;
+    response.setStatus(status);
+
+    String string = dataStore.printToString();
+    PrintWriter out = response.getWriter();
+    JsonWriter writer = new JsonWriter(out);
+    gson = gsonBuilder.create();
+    writer.setIndent("  ");
+    writer.beginObject();
+    writer.name("lastCheckInEventToString").value(gson.toJson(string));
+    writer.name("result").value(gson.toJson(requestResponse));
+    writer.endObject();
+    writer.close();
+  }
+
+  /**
+   * Get the last check-in events and return as a list.
+   * @param target
+   * @param request 
+   * @param response
+   * @throws IOException
+   */
+  private void handleGetLastCheckInEventsSorted(String target, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    if (!checkJsonContentType(response, request.getContentType())) {
+      return;
+    }
+
+    // Parse JSON content
+    boolean value = false;
+    GsonBuilder gsonBuilder = new GsonBuilder().setPrettyPrinting();
+    Gson gson = gsonBuilder.create();
+    JsonReader reader = new JsonReader(request.getReader());
+    reader.beginObject();
+    while (reader.hasNext()) {
+      String name = reader.nextName();
+      switch (name) {
+        case "getLastCheckInEventsSorted":
+          value = reader.nextBoolean();
+          break;
+        default:
+          reader.close();
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+          return;
+      }
+    }
+    reader.endObject();
+    reader.close();
+
+    // Set response
+    response.setContentType(jsonContentType);
+    int status = HttpServletResponse.SC_OK;
+    RequestResponse requestResponse = RequestResponse.Ok;
+    response.setStatus(status);
+
+    List<PersonCheckInEvent> list = dataStore.getLastCheckInEventsSorted();
+    PrintWriter out = response.getWriter();
+    JsonWriter writer = new JsonWriter(out);
+    gson = gsonBuilder.create();
+    writer.setIndent("  ");
+    writer.beginObject();
+    writer.name("getLastCheckInEventsSorted").value(gson.toJson(list));
+    writer.name("result").value(gson.toJson(requestResponse));
+    writer.endObject();
+    writer.close();
+  }
+
+  /**
+   * Get the last check-in event for an ID.
+   * @param target
+   * @param request 
+   * @param response
+   * @throws IOException
+   */
+  private void handleGetLastCheckInEvent(String target, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    if (!checkJsonContentType(response, request.getContentType())) {
+      return;
+    }
+
+    // Parse JSON content
+    long id = -1;
+    GsonBuilder gsonBuilder = new GsonBuilder().setPrettyPrinting();
+    Gson gson = gsonBuilder.create();
+    JsonReader reader = new JsonReader(request.getReader());
+    reader.beginObject();
+    while (reader.hasNext()) {
+      String name = reader.nextName();
+      switch (name) {
+        case "id":
+          id = reader.nextLong();
+          break;
+        default:
+          reader.close();
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+          return;
+      }
+    }
+    reader.endObject();
+    reader.close();
+
+    // Complete action
+    int status;
+    RequestResponse requestResponse;
+    CheckInEvent checkInEvent= null;
+    AttendanceRecord record = dataStore.getAttendanceRecord(id);
+    if (record == null) {
+      status = 251;
+      requestResponse = RequestResponse.UnknownId;
+    } else {
+      status = HttpServletResponse.SC_OK;
+      requestResponse = RequestResponse.Ok;
+      checkInEvent = record.getLastEvent();
+    }
+    if (id != record.getPerson().getId()) {
+      status = 252;
+      requestResponse = RequestResponse.FailedRequest;
+    }
+
+    // Set response
+    response.setContentType(jsonContentType);
+    response.setStatus(status);
+
+    PrintWriter out = response.getWriter();
+    JsonWriter writer = new JsonWriter(out);
+    gson = gsonBuilder.create();
+    writer.setIndent("  ");
+    writer.beginObject();
+    writer.name("id").value(gson.toJson(id));
+    writer.name("event").value(gson.toJson(checkInEvent));
+    writer.name("result").value(gson.toJson(requestResponse));
+    writer.endObject();
+    writer.close();
+  }
+
+  /**
+   * Get the attendance record for an ID.
+   * @param target
+   * @param request 
+   * @param response
+   * @throws IOException
+   */
+  private void handleGetAttendanceRecord(String target, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    if (!checkJsonContentType(response, request.getContentType())) {
+      return;
+    }
+
+    // Parse JSON content
+    long id = -1;
+    GsonBuilder gsonBuilder = new GsonBuilder().setPrettyPrinting();
+    Gson gson = gsonBuilder.create();
+    JsonReader reader = new JsonReader(request.getReader());
+    reader.beginObject();
+    while (reader.hasNext()) {
+      String name = reader.nextName();
+      switch (name) {
+        case "id":
+          id = reader.nextLong();
+          break;
+        default:
+          reader.close();
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+          return;
+      }
+    }
+    reader.endObject();
+    reader.close();
+
+    // Complete action
+    int status;
+    RequestResponse requestResponse;
+    AttendanceRecord record = dataStore.getAttendanceRecord(id);
+    if (record == null) {
+      status = 251;
+      requestResponse = RequestResponse.UnknownId;
+    } else {
+      status = HttpServletResponse.SC_OK;
+      requestResponse = RequestResponse.Ok;
+    }
+    if (id != record.getPerson().getId()) {
+      status = 252;
+      requestResponse = RequestResponse.FailedRequest;
+    }
+
+    // Set response
+    response.setContentType(jsonContentType);
+    response.setStatus(status);
+
+    PrintWriter out = response.getWriter();
+    JsonWriter writer = new JsonWriter(out);
+    gson = gsonBuilder.create();
+    writer.setIndent("  ");
+    writer.beginObject();
+    writer.name("id").value(gson.toJson(id));
+    if (record != null) {
+      //writer.name("attendanceRecord").value(gson.toJson(record));
+      writer.name("person").value(gson.toJson(record.getPerson()));
+      writer.name("eventList").value(gson.toJson(record.getEventList()));
+    }
     writer.name("result").value(gson.toJson(requestResponse));
     writer.endObject();
     writer.close();

@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -25,6 +26,7 @@ import org.cyborgs3335.checkin.AttendanceRecord;
 import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.Person;
+import org.cyborgs3335.checkin.PersonCheckInEvent;
 import org.cyborgs3335.checkin.UnknownUserException;
 import org.cyborgs3335.checkin.CheckInEvent.Status;
 
@@ -721,5 +723,29 @@ public class CheckInDataStore {
       }
     }
     return writer.toString();
+  }
+
+  public List<PersonCheckInEvent> getLastCheckInEventsSorted() throws IOException {
+    ArrayList<PersonCheckInEvent> recordList = new ArrayList<PersonCheckInEvent>(map.keySet().size());
+    synchronized (map) {
+      for (Long id : map.keySet()) {
+        AttendanceRecord record = map.get(id);
+        if (id != record.getPerson().getId()) {
+          LOG.info("ID " + id + " does not match ID " + record.getPerson().getId()
+              + " for attendance record from person " + record.getPerson());
+        }
+        recordList.add(new PersonCheckInEvent(record.getPerson(), record.getLastEvent()));
+      }
+    }
+    Collections.sort(recordList, new Comparator<PersonCheckInEvent>() {
+
+      @Override
+      public int compare(PersonCheckInEvent o1, PersonCheckInEvent o2) {
+        String o1Name = o1.getPerson().getLastName() + " " + o1.getPerson().getFirstName();
+        String o2Name = o2.getPerson().getLastName() + " " + o2.getPerson().getFirstName();
+        return o1Name.compareToIgnoreCase(o2Name);
+      }
+    });
+    return recordList;
   }
 }
