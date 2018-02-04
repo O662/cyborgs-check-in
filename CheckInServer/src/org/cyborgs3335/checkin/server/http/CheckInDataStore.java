@@ -29,6 +29,7 @@ import org.cyborgs3335.checkin.Person;
 import org.cyborgs3335.checkin.PersonCheckInEvent;
 import org.cyborgs3335.checkin.UnknownUserException;
 import org.cyborgs3335.checkin.server.util.JsonOutput;
+import org.cyborgs3335.checkin.server.util.PojoOutput;
 import org.cyborgs3335.checkin.CheckInEvent.Status;
 
 
@@ -361,30 +362,7 @@ public class CheckInDataStore {
     if (!dumpDir.isDirectory()) {
       throw new IOException("Path " + path + " must be a directory!");
     }
-    dumpAttendanceRecords(path + File.separator + DB_ATTENDANCE_RECORDS);
-  }
-
-  private void dumpAttendanceRecords(String path) {
-    ObjectOutputStream oos = null;
-    FileOutputStream fout = null;
-    try {
-      fout = new FileOutputStream(path);
-      oos = new ObjectOutputStream(fout);
-      oos.writeObject(activity);
-      synchronized (map) {
-        oos.writeObject(map);
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-    } finally {
-      if (oos != null) {
-        try {
-          oos.close();
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-      } 
-    }
+    PojoOutput.dumpAttendanceRecords(path + File.separator + DB_ATTENDANCE_RECORDS, activity, map);
   }
 
   /**
