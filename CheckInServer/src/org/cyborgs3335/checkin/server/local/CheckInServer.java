@@ -3,7 +3,6 @@ package org.cyborgs3335.checkin.server.local;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -13,7 +12,6 @@ import java.io.StringWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -29,10 +27,8 @@ import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.Person;
 import org.cyborgs3335.checkin.UnknownUserException;
 import org.cyborgs3335.checkin.CheckInEvent.Status;
+import org.cyborgs3335.checkin.server.util.JsonOutput;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.stream.JsonWriter;
 
 /**
  * Singleton check-in server using a map in memory as the "database".  The map
@@ -596,31 +592,8 @@ public class CheckInServer {
     if (!file.isDirectory()) {
       throw new IOException("Path " + path + " must be a directory!");
     }
-    dumpAttendanceRecordsJson(path + File.separator + JSON_ATTENDANCE_RECORDS);
-  }
-
-  private void dumpAttendanceRecordsJson(String path) throws IOException {
-    FileWriter fw = new FileWriter(path);
-    //Gson gson = new Gson();
-    // TODO nest activity and map into a top-level json object
-    //gson.toJson(activity, fw);
-    //synchronized (map) {
-    //  gson.toJson(map, fw);
-    //}
-    JsonWriter writer = new JsonWriter(fw);
-    //Gson gson = new Gson();
-    Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    writer.setIndent("  ");
-    writer.beginObject();
-    //writer.name("activity").value(gson.toJson(activity));
-    writer.name("activity").jsonValue(gson.toJson(activity));
-    synchronized (map) {
-      //writer.name("map").value(gson.toJson(map));
-      writer.name("map").jsonValue(gson.toJson(map));
-    }
-    writer.endObject();
-    writer.close();
-    fw.close();
+    JsonOutput.dumpAttendanceRecordsToJson(path + File.separator + JSON_ATTENDANCE_RECORDS,
+        activity, map);
   }
 
   private String floatArrayToString(float[] hoursByDay, String fmt) {
