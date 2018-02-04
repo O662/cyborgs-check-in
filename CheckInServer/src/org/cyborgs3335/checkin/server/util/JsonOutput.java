@@ -62,7 +62,11 @@ public class JsonOutput {
       writer.name("status");
       gson.toJson(event.getStatus(), CheckInEvent.Status.class, writer);
       writer.name("checkInActivity");
-      gson.toJson(activity, CheckInActivity.class, writer);
+      if (event.getActivity() == null) {
+        gson.toJson(CheckInEvent.DEFAULT_ACTIVITY, CheckInActivity.class, writer);
+      } else {
+        gson.toJson(event.getActivity(), CheckInActivity.class, writer);
+      }
       //writeCheckInActivity(activity);
       writer.endObject();
     }

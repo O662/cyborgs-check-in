@@ -39,4 +39,31 @@ public class CheckInEvent implements Serializable {
     return timeStamp;
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == null) {
+      return false;
+    }
+    if (!(obj instanceof CheckInEvent)) {
+      return false;
+    }
+    CheckInEvent event = (CheckInEvent) obj;
+    if ((activity == null && event.activity != null)
+        || (activity != null && event.activity == null)) {
+      return false;
+    }
+    if (!((activity == null && event.activity == null)
+        || (activity.equals(event.activity)))) {
+      return false;
+    }
+    return status.equals(event.status)
+        && timeStamp == event.timeStamp;
+  }
+
+  @Override
+  public int hashCode() {
+    long hashLong = (long) activity.hashCode() + (long) status.hashCode()
+        + (long) Long.hashCode(timeStamp);
+    return (int) hashLong;
+  }
 }
