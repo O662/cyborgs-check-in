@@ -46,6 +46,9 @@ dependencies {
     // Jetty
     //compile 'org.eclipse.jetty:jetty-distribution:9.4.5.v20170502'
     compile 'org.eclipse.jetty:jetty-server:9.4.5.v20170502'
+
+    // sqlite
+    compile 'org.xerial:sqlite-jdbc:3.21.0.1'
 }
 
 // Change project layout
