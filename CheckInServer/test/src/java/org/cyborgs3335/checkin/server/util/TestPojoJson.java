@@ -41,8 +41,8 @@ public class TestPojoJson {
 
     // Verify JSON round-trip
     String pathJson = "/tmp/check-in-json.dump";
-    JsonOutput.dumpAttendanceRecordsToJson(pathJson, pojoOrig.getCheckInActivity(), pojoOrig.getMap());
-    JsonInput jsonInput = JsonInput.loadAttendanceRecordsFromJson(pathJson);
+    JsonOutput.dumpAttendanceRecords(pathJson, pojoOrig.getCheckInActivity(), pojoOrig.getMap());
+    JsonInput jsonInput = JsonInput.loadAttendanceRecords(pathJson);
     success = compare(pojoOrig.getCheckInActivity(), jsonInput.getCheckInActivity());
     if (!success) {
       System.out.println("JSON: failed on CheckInActivity!");

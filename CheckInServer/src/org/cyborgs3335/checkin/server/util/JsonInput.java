@@ -349,7 +349,7 @@ public class JsonInput {
     return event;
   }
 
-  public static JsonInput loadAttendanceRecordsFromJson(String path) throws IOException {
+  public static JsonInput loadAttendanceRecords(String path) throws IOException {
     FileReader fileReader = new FileReader(path);
     JsonReader reader = new JsonReader(fileReader);
     JsonInput jsonInput = new JsonInput(reader);

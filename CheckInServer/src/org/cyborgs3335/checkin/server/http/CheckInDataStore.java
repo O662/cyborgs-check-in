@@ -589,7 +589,7 @@ public class CheckInDataStore {
     if (!file.isDirectory()) {
       throw new IOException("Path " + path + " must be a directory!");
     }
-    JsonOutput.dumpAttendanceRecordsToJson(path + File.separator + JSON_ATTENDANCE_RECORDS,
+    JsonOutput.dumpAttendanceRecords(path + File.separator + JSON_ATTENDANCE_RECORDS,
         activity, map);
   }
 

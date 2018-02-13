@@ -83,7 +83,7 @@ public class JsonOutput {
     writer.endObject();
   }
 
-  public static void dumpAttendanceRecordsToJson(String path, CheckInActivity activity, Map<Long, AttendanceRecord> map) throws IOException {
+  public static void dumpAttendanceRecords(String path, CheckInActivity activity, Map<Long, AttendanceRecord> map) throws IOException {
     FileWriter fw = new FileWriter(path);
     JsonWriter writer = new JsonWriter(fw);
     new JsonOutput(writer, activity, map).toJson();
