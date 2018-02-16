@@ -14,7 +14,7 @@ import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.Person;
 import org.cyborgs3335.checkin.server.jdbc.DatabaseCreator;
-import org.cyborgs3335.checkin.server.jdbc.DatabaseWriter;
+import org.cyborgs3335.checkin.server.jdbc.DatabaseConnection;
 
 
 public class JdbcInput {
@@ -41,7 +41,7 @@ public class JdbcInput {
     try {
       // Open database for populating with data
       //DatabaseWriter writer = new DatabaseWriter("jdbc:sqlite:checkin_test1.db");
-      DatabaseWriter writer = new DatabaseWriter(path);
+      DatabaseConnection writer = new DatabaseConnection(path);
       //System.out.println("person table before: ");
       //writer.printPersonTable();
       //System.out.println("check-in activity table before: ");

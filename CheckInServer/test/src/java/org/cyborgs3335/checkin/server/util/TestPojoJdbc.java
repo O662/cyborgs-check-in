@@ -12,7 +12,7 @@ import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.MainApp;
 import org.cyborgs3335.checkin.Person;
 import org.cyborgs3335.checkin.server.jdbc.DatabaseCreator;
-import org.cyborgs3335.checkin.server.jdbc.DatabaseWriter;
+import org.cyborgs3335.checkin.server.jdbc.DatabaseConnection;
 
 public class TestPojoJdbc {
 

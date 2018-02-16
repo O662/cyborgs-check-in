@@ -12,11 +12,11 @@ import org.cyborgs3335.checkin.CheckInActivity;
 import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.Person;
 
-public class DatabaseWriter {
+public class DatabaseConnection {
 
   private final Connection connection;
 
-  public DatabaseWriter(String url) throws SQLException {
+  public DatabaseConnection(String url) throws SQLException {
     // create a database connection
     connection = DriverManager.getConnection(url);
     Statement statement = connection.createStatement();
@@ -388,7 +388,7 @@ public class DatabaseWriter {
 
   public static void main(String[] args) {
     try {
-      DatabaseWriter creator = new DatabaseWriter("jdbc:sqlite:checkin_test1.db");
+      DatabaseConnection creator = new DatabaseConnection("jdbc:sqlite:checkin_test1.db");
       System.out.println("before: ");
       creator.printPersonTable();
       Person p = new Person(101, "John", "Doe");
