@@ -54,6 +54,10 @@ public class DatabaseConnection {
     statement.close();
   }
 
+  public boolean hasPersonId(long personId) throws SQLException {
+    return getPerson(personId) != null;
+  }
+
   public Person getPerson(long personId) throws SQLException {
     Person person = null;
     Statement statement = connection.createStatement();
@@ -73,6 +77,33 @@ public class DatabaseConnection {
       String lastName = rs.getString("last_name");
       String nickName = rs.getString("nick_name");
       person = new Person(personId, firstName, middleName, lastName, nickName);
+    }
+    statement.close();
+    return person;
+  }
+
+  public Person findPerson(String firstName, String lastName) throws SQLException {
+    Person person = null;
+    Statement statement = connection.createStatement();
+    statement.setQueryTimeout(30);
+    String sql = "SELECT * FROM " + DatabaseCreator.TABLE_PERSON
+        + " WHERE first_name LIKE '" + firstName + "' AND last_name LIKE '" + lastName + "'";
+    System.out.println("sql: " + sql);
+    ResultSet rs = statement.executeQuery(sql);
+    int count = 0;
+    while (rs.next()) {
+      count++;
+      if (count > 1) {
+        statement.close();
+        throw new SQLException("Found more than one current person with name "
+            + firstName + " " + lastName + "!");
+      }
+      long personId = rs.getLong("person_id");
+      String firstNameDb = rs.getString("first_name");
+      String middleName = rs.getString("middle_name");
+      String lastNameDb = rs.getString("last_name");
+      String nickName = rs.getString("nick_name");
+      person = new Person(personId, firstNameDb, middleName, lastNameDb, nickName);
     }
     statement.close();
     return person;
@@ -343,6 +374,46 @@ public class DatabaseConnection {
     return record;
   }
 
+  public CheckInEvent getLastEvent(long personId) throws SQLException {
+    CheckInEvent event = null;
+    Statement statement = connection.createStatement();
+    statement.setQueryTimeout(30);  // set timeout to 30 sec.
+    String sql = "SELECT * FROM " + DatabaseCreator.TABLE_ATTENDANCE_RECORD + " WHERE "
+        + "person_id = " + personId;
+    ResultSet rs = statement.executeQuery(sql);
+    if (rs.getType() != ResultSet.TYPE_FORWARD_ONLY) {
+      boolean hasLast = rs.last();
+      if (hasLast) {
+        long activityId = rs.getLong("activity_id");
+        CheckInEvent.Status status = CheckInEvent.Status.valueOf(rs.getString("status"));
+        long timeStamp = rs.getLong("time_stamp");
+        event = new CheckInEvent(getCheckInActivity(activityId), status, timeStamp);
+      }
+    } else {
+      //while (rs.next()) {
+      //  long activityId = rs.getLong("activity_id");
+      //  CheckInEvent.Status status = CheckInEvent.Status.valueOf(rs.getString("status"));
+      //  long timeStamp = rs.getLong("time_stamp");
+      //  event = new CheckInEvent(getCheckInActivity(activityId), status, timeStamp);
+      //}
+      int count = 0;
+      long activityId = -1;
+      CheckInEvent.Status status = CheckInEvent.Status.CheckedOut;
+      long timeStamp = -Long.MAX_VALUE;
+      while (rs.next()) {
+        activityId = rs.getLong("activity_id");
+        status = CheckInEvent.Status.valueOf(rs.getString("status"));
+        timeStamp = rs.getLong("time_stamp");
+        count++;
+      }
+      if (count > 0) {
+        event = new CheckInEvent(getCheckInActivity(activityId), status, timeStamp);
+      }
+    }
+    statement.close();
+    return event;
+  }
+
   public boolean insertAttendanceRecord(Person person, CheckInEvent event) throws SQLException {
     Statement statement = connection.createStatement();
     statement.setQueryTimeout(30);  // set timeout to 30 sec.
@@ -400,6 +471,8 @@ public class DatabaseConnection {
       }
       System.out.println("after: ");
       creator.printPersonTable();
+      Person person = creator.findPerson("John", "Doe");
+      System.out.println("person: " + person);
       creator.close();
     } catch (SQLException e) {
       // TODO Auto-generated catch block

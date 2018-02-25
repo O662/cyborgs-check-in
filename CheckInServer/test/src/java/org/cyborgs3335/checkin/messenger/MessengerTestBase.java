@@ -76,6 +76,9 @@ public abstract class MessengerTestBase {
       response = m.checkOutAll();
       assertEquals(RequestResponse.Ok, response);
 
+      printRecords(m.getAttendanceRecord(person1.getId()));
+      printRecords(m.getAttendanceRecord(person2.getId()));
+
       Status status = m.getCheckInStatus(person1.getId());
       assertEquals(Status.CheckedOut, status);
       status = m.getCheckInStatus(person2.getId());
@@ -86,6 +89,15 @@ public abstract class MessengerTestBase {
     } catch (UnknownUserException e) {
       e.printStackTrace();
       fail();
+    }
+  }
+
+  private void printRecords(AttendanceRecord attendanceRecord) {
+    System.out.println("Attendance record for " + attendanceRecord.getPerson());
+    for (CheckInEvent event : attendanceRecord.getEventList()) {
+      System.out.println("activity: " + event.getActivity()
+          + " status: " + event.getStatus()
+          + " timestamp: " + event.getTimeStamp());
     }
   }
 

@@ -2,24 +2,18 @@ package org.cyborgs3335.checkin.server.http;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.StringWriter;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.logging.Logger;
 
 import org.cyborgs3335.checkin.AttendanceRecord;
@@ -28,39 +22,46 @@ import org.cyborgs3335.checkin.CheckInEvent;
 import org.cyborgs3335.checkin.Person;
 import org.cyborgs3335.checkin.PersonCheckInEvent;
 import org.cyborgs3335.checkin.UnknownUserException;
+import org.cyborgs3335.checkin.server.jdbc.DatabaseConnection;
+import org.cyborgs3335.checkin.server.util.JdbcInput;
 import org.cyborgs3335.checkin.server.util.JsonOutput;
 import org.cyborgs3335.checkin.server.util.PojoOutput;
 import org.cyborgs3335.checkin.CheckInEvent.Status;
 
 
 /**
- * Singleton check-in server using a map in memory as the "database".  The map
- * can be persisted to a file, and can be loaded from a file.
+ * Singleton check-in server using a database via JDBC.
  *
  * @author brian
  *
  */
-public class CheckInDataStore implements ICheckInDataStore {
+public class CheckInDataStoreJdbc implements ICheckInDataStore {
 
-  private static final Logger LOG = Logger.getLogger(CheckInDataStore.class.getName());
+  private static final Logger LOG = Logger.getLogger(CheckInDataStoreJdbc.class.getName());
 
-  private final Map<Long, AttendanceRecord> map = Collections.synchronizedMap(new HashMap<Long, AttendanceRecord>());
+  //public static final String DB_ATTENDANCE_RECORDS = "attendance-records.db";
+
+  //public static final String JSON_ATTENDANCE_RECORDS = "attendance-records.json";
+
+  //private final Map<Long, AttendanceRecord> map = Collections.synchronizedMap(new HashMap<Long, AttendanceRecord>());
+
+  private DatabaseConnection dbConnection = null;
 
   private boolean isLoaded = false;
 
   private String dataStorePath = null;
 
-  private CheckInActivity activity = null;
+  //private CheckInActivity activity = null;
 
   private DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
 
   private DateFormat dateFormatCsv = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
   private static class Singleton {
-    private static final CheckInDataStore INSTANCE = new CheckInDataStore();
+    private static final CheckInDataStoreJdbc INSTANCE = new CheckInDataStoreJdbc();
   }
 
-  private CheckInDataStore() {
+  private CheckInDataStoreJdbc() {
     //addDefaultUsers();
   }
 
@@ -68,66 +69,20 @@ public class CheckInDataStore implements ICheckInDataStore {
    * Return the check-in server instance.
    * @return check-in server instance
    */
-  public static CheckInDataStore getInstance() {
+  public static CheckInDataStoreJdbc getInstance() {
     return Singleton.INSTANCE;
-  }
-
-  /*package */void addDefaultUsers() {
-    char first = 'a';
-    char last = 'z';
-    CheckInActivity defaultActivity = (activity != null) ? activity : CheckInEvent.DEFAULT_ACTIVITY;
-    for (long id = 0; id < 10; id++) {
-      CheckInEvent event = new CheckInEvent(defaultActivity, Status.CheckedOut, 0);
-      Person person = new Person(id, ""+first+first+first, ""+last+last+last);
-      AttendanceRecord record = new AttendanceRecord(person);
-      record.getEventList().add(event);
-      map.put(id, record);
-      first++;
-      last--;
-    }
-
-    // Card UID: 94 18 60 EC value 941860EC id 2484625644
-    long id = 2484625644L;
-    CheckInEvent event = new CheckInEvent(defaultActivity, Status.CheckedOut, 0);
-    Person person = new Person(id, "Blue1", "Token1");
-    AttendanceRecord record = new AttendanceRecord(person);
-    record.getEventList().add(event);
-    map.put(id, record);
-
-    // Card UID: 94 6C 56 EC value 946C56EC id 2490128108
-    id = 2490128108L;
-    event = new CheckInEvent(defaultActivity, Status.CheckedOut, 0);
-    person = new Person(id, "Blue2", "Token2");
-    record = new AttendanceRecord(person);
-    record.getEventList().add(event);
-    map.put(id, record);
-
-    // Card UID: 62 21 E4 D5 value 6221E4D5 id 1646388437
-    id = 1646388437L;
-    event = new CheckInEvent(defaultActivity, Status.CheckedOut, 0);
-    person = new Person(id, "White1", "Card1");
-    record = new AttendanceRecord(person);
-    record.getEventList().add(event);
-    map.put(id, record);
   }
 
   /* (non-Javadoc)
    * @see org.cyborgs3335.checkin.server.http.ICheckInDataStore#addUser(java.lang.String, java.lang.String)
    */
   @Override
-  public Person addUser(String firstName, String lastName) {
-    long id = getNewId();
-    CheckInEvent event = null;
-    if (activity != null) {
-      event = new CheckInEvent(activity, Status.CheckedOut, 0);
-    } else {
-      event = new CheckInEvent(CheckInEvent.DEFAULT_ACTIVITY, Status.CheckedOut, 0);
+  public Person addUser(String firstName, String lastName) throws IOException {
+    try {
+      return addUserWithId(getNewId(), firstName, lastName);
+    } catch (SQLException e) {
+      throw new IOException("Caught SQLException when adding user.", e);
     }
-    Person person = new Person(id, firstName, lastName);
-    AttendanceRecord record = new AttendanceRecord(person);
-    record.getEventList().add(event);
-    map.put(id, record);
-    return person;
   }
 
   /**
@@ -136,29 +91,33 @@ public class CheckInDataStore implements ICheckInDataStore {
    * @param firstName first name
    * @param lastName last name
    * @return added user, or null if id already exists
+   * @throws IOException 
    */
-  /* package */Person addUserWithId(long id, String firstName, String lastName) {
-    if (map.containsKey(id)) {
-      return null;
+  /* package */Person addUserWithId(long id, String firstName, String lastName) throws IOException {
+    Person person = null;
+    try {
+      if (dbConnection.hasPersonId(id)) {
+        return null;
+      }
+      CheckInActivity activity = dbConnection.getCurrentCheckInActivity();
+      if (activity == null) {
+        activity = CheckInEvent.DEFAULT_ACTIVITY;
+      }
+      CheckInEvent event = new CheckInEvent(activity, Status.CheckedOut, 0);
+      person = new Person(id, firstName, lastName);
+      boolean success = dbConnection.insertPerson(person);
+      success = dbConnection.insertAttendanceRecord(person, event);
+    } catch (SQLException e) {
+      throw new IOException("Caught SQLException when adding user.", e);
     }
-    CheckInEvent event = null;
-    if (activity != null) {
-      event = new CheckInEvent(activity, Status.CheckedOut, 0);
-    } else {
-      event = new CheckInEvent(CheckInEvent.DEFAULT_ACTIVITY, Status.CheckedOut, 0);
-    }
-    Person person = new Person(id, firstName, lastName);
-    AttendanceRecord record = new AttendanceRecord(person);
-    record.getEventList().add(event);
-    map.put(id, record);
     return person;
   }
 
-  private long getNewId() {
+  private long getNewId() throws SQLException {
     Random random = new Random();
     for (int count = 0; count < 100; count++) {
       long id = Math.abs(random.nextLong());
-      if (!map.containsKey(id)) {
+      if (!dbConnection.hasPersonId(id)) {
         return id;
       }
     }
@@ -169,36 +128,31 @@ public class CheckInDataStore implements ICheckInDataStore {
    * @see org.cyborgs3335.checkin.server.http.ICheckInDataStore#findPerson(java.lang.String, java.lang.String)
    */
   @Override
-  public Person findPerson(String firstName, String lastName) {
-    Person person = null;
-    for (Long id : map.keySet()) {
-      Person p = map.get(id).getPerson();
-      //if (p.getFirstName().equals(firstName) && p.getLastName().equals(lastName)) {
-      if (p.getFirstName().equalsIgnoreCase(firstName) && p.getLastName().equalsIgnoreCase(lastName)) {
-        person = p;
-        break;
-      }
+  public Person findPerson(String firstName, String lastName) throws IOException {
+    try {
+      return dbConnection.findPerson(firstName, lastName);
+    } catch (SQLException e) {
+      throw new IOException("Caught SQLException during findPerson.", e);
     }
-    return person;
   }
 
   /* (non-Javadoc)
    * @see org.cyborgs3335.checkin.server.http.ICheckInDataStore#containsId(long)
    */
   @Override
-  public boolean containsId(long id) {
-    boolean retval = false;
-    synchronized (map) {
-      retval = map.containsKey(id);
+  public boolean containsId(long id) throws IOException {
+    try {
+      return dbConnection.hasPersonId(id);
+    } catch (SQLException e) {
+      throw new IOException("Caught SQLException during containsId.", e);
     }
-    return retval;
   }
 
   /* (non-Javadoc)
    * @see org.cyborgs3335.checkin.server.http.ICheckInDataStore#checkIn(long)
    */
   @Override
-  public boolean checkIn(long id) throws UnknownUserException {
+  public boolean checkIn(long id) throws UnknownUserException, IOException {
     return checkInOut(id, Status.CheckedIn);
   }
 
@@ -206,7 +160,7 @@ public class CheckInDataStore implements ICheckInDataStore {
    * @see org.cyborgs3335.checkin.server.http.ICheckInDataStore#checkOut(long)
    */
   @Override
-  public boolean checkOut(long id) throws UnknownUserException {
+  public boolean checkOut(long id) throws UnknownUserException, IOException {
     return checkInOut(id, Status.CheckedOut);
   }
 
@@ -216,34 +170,41 @@ public class CheckInDataStore implements ICheckInDataStore {
    * @param desiredStatus desired status (CheckedIn to check in, CheckedOut to check out)
    * @return true if successful, false otherwise
    * @throws UnknownUserException if the user is unknown to the server
+   * @throws IOException 
    */
-  private boolean checkInOut(long id, Status desiredStatus) throws UnknownUserException {
-    synchronized (map) {
-      if (!map.containsKey(id)) {
+  private boolean checkInOut(long id, Status desiredStatus) throws UnknownUserException, IOException {
+    try {
+      if (!dbConnection.hasPersonId(id)) {
         throw new UnknownUserException("Unknown user id " + id);
       }
-      CheckInEvent event = map.get(id).getLastEvent();
+      CheckInEvent event = dbConnection.getLastEvent(id);
       if (event.getStatus().equals(desiredStatus)) {
         return false;
       }
       long timeStamp = System.currentTimeMillis();
-      CheckInActivity cia = (activity != null) ? activity : CheckInEvent.DEFAULT_ACTIVITY;
-      map.get(id).getEventList().add(new CheckInEvent(cia, desiredStatus, timeStamp));
+      CheckInActivity activity = dbConnection.getCurrentCheckInActivity();
+      if (activity == null) {
+        activity = CheckInEvent.DEFAULT_ACTIVITY;
+      }
+      dbConnection.insertAttendanceRecord(dbConnection.getPerson(id),
+          new CheckInEvent(activity, desiredStatus, timeStamp));
+      return true;
+    } catch (SQLException e) {
+      throw new IOException("Caught SQLException during checkInOut.", e);
     }
-    return true;
   }
 
   /* (non-Javadoc)
    * @see org.cyborgs3335.checkin.server.http.ICheckInDataStore#accept(long)
    */
   @Override
-  public boolean accept(long id) throws UnknownUserException {
-    boolean checkedIn = false;
-    synchronized (map) {
-      if (!map.containsKey(id)) {
+  public boolean accept(long id) throws UnknownUserException, IOException {
+    try {
+      boolean checkedIn = false;
+      if (!dbConnection.hasPersonId(id)) {
         throw new UnknownUserException("Unknown user id " + id);
       }
-      CheckInEvent event = map.get(id).getLastEvent();
+      CheckInEvent event = dbConnection.getLastEvent(id);
       long timeStamp = System.currentTimeMillis();
       Status status;
       switch (event.getStatus()) {
@@ -257,29 +218,41 @@ public class CheckInDataStore implements ICheckInDataStore {
           checkedIn = true;
           break;
       }
-      if (activity != null) {
-        map.get(id).getEventList().add(new CheckInEvent(activity, status, timeStamp));
-      } else {
-        map.get(id).getEventList().add(new CheckInEvent(CheckInEvent.DEFAULT_ACTIVITY, status, timeStamp));
+      CheckInActivity activity = dbConnection.getCurrentCheckInActivity();
+      if (activity == null) {
+        activity = CheckInEvent.DEFAULT_ACTIVITY;
       }
+      dbConnection.insertAttendanceRecord(dbConnection.getPerson(id),
+          new CheckInEvent(activity, status, timeStamp));
+      return checkedIn;
+    } catch (SQLException e) {
+      throw new IOException("Caught SQLException during accept.", e);
     }
-    return checkedIn;
   }
 
   /* (non-Javadoc)
    * @see org.cyborgs3335.checkin.server.http.ICheckInDataStore#getActivity()
    */
   @Override
-  public CheckInActivity getActivity() {
-    return activity;
+  public CheckInActivity getActivity() throws IOException {
+    try {
+      return dbConnection.getCurrentCheckInActivity();
+    } catch (SQLException e) {
+      throw new IOException("Caught SQLException during getActivity.", e);
+    }
   }
 
   /* (non-Javadoc)
    * @see org.cyborgs3335.checkin.server.http.ICheckInDataStore#setActivity(org.cyborgs3335.checkin.CheckInActivity)
    */
   @Override
-  public void setActivity(CheckInActivity activity) {
-    this.activity = activity;
+  public void setActivity(CheckInActivity activity) throws IOException {
+    try {
+      long activityId = dbConnection.insertCheckInActivity(activity);
+      dbConnection.setCurrentCheckInActivityId(activityId);
+    } catch (SQLException e) {
+      throw new IOException("Caught SQLException during setActivity.", e);
+    }
   }
 
   /**
@@ -287,7 +260,7 @@ public class CheckInDataStore implements ICheckInDataStore {
    * @param path directory containing "database"
    * @throws IOException on I/O error loading "database" from filesystem 
    */
-  /*package*/synchronized CheckInDataStore load(String path) throws IOException {
+  /*package*/synchronized CheckInDataStoreJdbc load(String path) throws IOException {
     if (isLoaded) {
       throw new IOException("Store is already loaded at path " + dataStorePath
           + ".  Cannot load again from path " + path);
@@ -299,9 +272,14 @@ public class CheckInDataStore implements ICheckInDataStore {
     String recordsPath = path + File.separator + DB_ATTENDANCE_RECORDS;
     File recordsFile = new File(recordsPath);
     if (recordsFile.isFile() && recordsFile.canRead()) {
-      loadAttendanceRecords(path + File.separator + DB_ATTENDANCE_RECORDS);
-    } else if (!recordsFile.exists()) {
-      recordsFile.createNewFile();
+      try {
+        dbConnection = new DatabaseConnection("jdbc:sqlite:" + recordsPath);
+      } catch (SQLException e) {
+        throw new IOException("Failed to open database connection to " + recordsPath, e);
+      }
+    // TODO implement a create method?
+    //} else if (!recordsFile.exists()) {
+    //  recordsFile.createNewFile();
     } else {
       throw new IOException("Unable to access a records file at " + recordsPath);
     }
@@ -310,57 +288,20 @@ public class CheckInDataStore implements ICheckInDataStore {
     return this;
   }
 
-  private void loadAttendanceRecords(String path) {
-    ObjectInputStream ois = null;
-    FileInputStream fin = null;
-    try {
-      fin = new FileInputStream(path);
-      ois = new ObjectInputStream(fin);
-      Object o = ois.readObject();
-      if (o instanceof CheckInActivity) {
-        activity = (CheckInActivity) o;
-      } else {
-        throw new IllegalStateException("Expected to read CheckInActivity."
-            + "However, encountered " + o.getClass() + " instead.");
-      }
-      o = ois.readObject();
-      if (o instanceof Map) {
-        Map<Long, AttendanceRecord> inmap = (Map<Long, AttendanceRecord>) o;
-        synchronized (map) {
-          map.putAll(inmap);
-        }
-      } else {
-        throw new IllegalStateException("Expected to read attendance record Map<Long, AttendanceRecord>."
-            + "However, encountered " + o.getClass() + " instead.");
-      }
-    } catch (IOException | ClassNotFoundException e) {
-      e.printStackTrace();
-    } finally {
-      if (ois != null) {
-        try {
-          ois .close();
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-      } 
-    }
-  }
-
-  /*package */void loadJson(String path) {
-    // TODO implement me!!!
-  }
-
   /**
-   * Dump "database" to filesystem.
+   * Dump "database" to filesystem in &quot;POJO&quot; format.
    * @param path directory to contain "database"
    * @throws IOException on I/O error dumping "database" to filesystem
    */
-  /*package*/void dump(String path) throws IOException {
+  /*package*/void dumpPojo(String path) throws IOException {
     File dumpDir = new File(path);
     if (!dumpDir.isDirectory()) {
       throw new IOException("Path " + path + " must be a directory!");
     }
-    PojoOutput.dumpAttendanceRecords(path + File.separator + DB_ATTENDANCE_RECORDS, activity, map);
+    JdbcInput input = JdbcInput.loadAttendanceRecords("jdbc:sqlite:"
+        + dataStorePath + File.separator + DB_ATTENDANCE_RECORDS);
+    PojoOutput.dumpAttendanceRecords(path + File.separator + DB_ATTENDANCE_RECORDS,
+        input.getCheckInActivity(), input.getMap());
   }
 
   /**
@@ -394,6 +335,7 @@ public class CheckInDataStore implements ICheckInDataStore {
     try {
       writer = new BufferedWriter(new FileWriter(path));
       writer.write("Activity Name,Start Date,End Date\n");
+      CheckInActivity activity = dbConnection.getCurrentCheckInActivity();
       writer.write(activity.getName() + "," + dateFormat.format(activity.getStartDate())
           + "," + dateFormat.format(activity.getEndDate()) + "\n");
       writer.write("ID,First Name,Last Name,Check-In Status,Date\n");
@@ -407,7 +349,7 @@ public class CheckInDataStore implements ICheckInDataStore {
             + "," + event.getStatus()
             + "," + dateFormat.format(new Date(event.getTimeStamp())) + "\n");
       }
-    } catch (IOException e) {
+    } catch (IOException | SQLException e) {
       e.printStackTrace();
     } finally {
       if (writer != null) {
@@ -425,6 +367,7 @@ public class CheckInDataStore implements ICheckInDataStore {
     try {
       writer = new BufferedWriter(new FileWriter(path));
       writer.write("Activity Name,Start Date,End Date\n");
+      CheckInActivity activity = dbConnection.getCurrentCheckInActivity();
       writer.write(activity.getName() + "," + dateFormat.format(activity.getStartDate())
           + "," + dateFormat.format(activity.getEndDate()) + "\n");
       writer.write("ID,First Name,Last Name,Activity Name,Start Date,End Date,Check-In Status,Date\n");
@@ -436,16 +379,16 @@ public class CheckInDataStore implements ICheckInDataStore {
             + "," + record.getPerson().getFirstName()
             + "," + record.getPerson().getLastName());
         for (CheckInEvent event : list) {
-          CheckInActivity activity = (event.getActivity() != null) ? event.getActivity() : CheckInEvent.DEFAULT_ACTIVITY;
-          writer.write("," + activity.getName()
-              + "," + activity.getStartDate()
-              + "," + activity.getEndDate()
+          CheckInActivity cia = (event.getActivity() != null) ? event.getActivity() : CheckInEvent.DEFAULT_ACTIVITY;
+          writer.write("," + cia.getName()
+              + "," + cia.getStartDate()
+              + "," + cia.getEndDate()
               + "," + event.getStatus()
               + "," + dateFormat.format(new Date(event.getTimeStamp())));
         }
         writer.write("\n");
       }
-    } catch (IOException e) {
+    } catch (IOException | SQLException e) {
       e.printStackTrace();
     } finally {
       if (writer != null) {
@@ -463,6 +406,7 @@ public class CheckInDataStore implements ICheckInDataStore {
     try {
       writer = new BufferedWriter(new FileWriter(path));
       writer.write("Activity Name,Start Date,End Date\n");
+      CheckInActivity activity = dbConnection.getCurrentCheckInActivity();
       writer.write(activity.getName() + "," + dateFormatCsv.format(activity.getStartDate())
           + "," + dateFormatCsv.format(activity.getEndDate()) + "\n");
       writer.write("ID,First Name,Last Name,Activity Name,Start Date,End Date,Check-In Status,Timestamp\n");
@@ -479,11 +423,11 @@ public class CheckInDataStore implements ICheckInDataStore {
             + "," + record.getPerson().getFirstName()
             + "," + record.getPerson().getLastName();
         for (CheckInEvent event : list) {
-          CheckInActivity activity = (event.getActivity() != null) ? event.getActivity() : CheckInEvent.DEFAULT_ACTIVITY;
+          CheckInActivity cia = (event.getActivity() != null) ? event.getActivity() : CheckInEvent.DEFAULT_ACTIVITY;
           writer.write(personStr
-              + "," + activity.getName()
-              + "," + activity.getStartDate()
-              + "," + activity.getEndDate()
+              + "," + cia.getName()
+              + "," + cia.getStartDate()
+              + "," + cia.getEndDate()
               + "," + event.getStatus()
               + "," + dateFormatCsv.format(new Date(event.getTimeStamp())) + "\n");
           if (event.getTimeStamp() > 0) {
@@ -498,7 +442,7 @@ public class CheckInDataStore implements ICheckInDataStore {
       //System.out.println("timestamp min " + timeStampMin + " max " + timeStampMax);
       LOG.info("timestamp min " + dateFormatCsv.format(new Date(timeStampMin)) + " max " + dateFormatCsv.format(new Date(timeStampMax)));
       //recordList.get(0).getHoursByDay(new Date(timeStampMin), new Date(timeStampMax));
-    } catch (IOException e) {
+    } catch (IOException | SQLException e) {
       e.printStackTrace();
     } finally {
       if (writer != null) {
@@ -556,7 +500,7 @@ public class CheckInDataStore implements ICheckInDataStore {
         if (!record.areEventsConsistent()) {
           LOG.info("Found inconsistent attendance record for " + record.getPerson());
         }
-        ArrayList<CheckInEvent> list = record.getEventList();
+        //ArrayList<CheckInEvent> list = record.getEventList();
         //CheckInEvent event = list.get(list.size()-1);
         String personStr = record.getPerson().getId()
             + "," + record.getPerson().getFirstName()
@@ -587,8 +531,10 @@ public class CheckInDataStore implements ICheckInDataStore {
     if (!file.isDirectory()) {
       throw new IOException("Path " + path + " must be a directory!");
     }
+    JdbcInput input = JdbcInput.loadAttendanceRecords("jdbc:sqlite:"
+        + dataStorePath + File.separator + DB_ATTENDANCE_RECORDS);
     JsonOutput.dumpAttendanceRecords(path + File.separator + JSON_ATTENDANCE_RECORDS,
-        activity, map);
+        input.getCheckInActivity(), input.getMap());
   }
 
   private String floatArrayToString(float[] hoursByDay, String fmt) {
@@ -603,68 +549,74 @@ public class CheckInDataStore implements ICheckInDataStore {
    * @see org.cyborgs3335.checkin.server.http.ICheckInDataStore#getSortedAttendanceRecords()
    */
   @Override
-  public ArrayList<AttendanceRecord> getSortedAttendanceRecords() {
-    ArrayList<AttendanceRecord> recordList;
-    int rowCount = getIdSet().size();
-    recordList = new ArrayList<AttendanceRecord>(rowCount);
-    for (Long id : getIdSet()) {
-      AttendanceRecord record = getAttendanceRecord(id);
-      if (id != record.getPerson().getId()) {
-        LOG.info("ID " + id + " does not match ID " + record.getPerson().getId()
-            + " for attendance record from person " + record.getPerson());
+  public ArrayList<AttendanceRecord> getSortedAttendanceRecords() throws IOException {
+    try {
+      ArrayList<Long> personIds = dbConnection.getPersonList();
+      int rowCount = personIds.size();
+      ArrayList<AttendanceRecord> recordList = new ArrayList<AttendanceRecord>(rowCount);
+      for (Long id : personIds) {
+        AttendanceRecord record = getAttendanceRecord(id);
+        if (id != record.getPerson().getId()) {
+          LOG.info("ID " + id + " does not match ID " + record.getPerson().getId()
+              + " for attendance record from person " + record.getPerson());
+        }
+        recordList.add(record);
       }
-      recordList.add(record);
+      Collections.sort(recordList, new Comparator<AttendanceRecord>() {
+
+        @Override
+        public int compare(AttendanceRecord o1, AttendanceRecord o2) {
+          String o1Name = o1.getPerson().getLastName() + " " + o1.getPerson().getFirstName();
+          String o2Name = o2.getPerson().getLastName() + " " + o2.getPerson().getFirstName();
+          return o1Name.compareToIgnoreCase(o2Name);
+        }
+      });
+      return recordList;
+    } catch (SQLException e) {
+      throw new IOException("Caught SQLException during getSortedAttendanceRecords.", e);
     }
-    Collections.sort(recordList, new Comparator<AttendanceRecord>() {
-
-      @Override
-      public int compare(AttendanceRecord o1, AttendanceRecord o2) {
-        String o1Name = o1.getPerson().getLastName() + " " + o1.getPerson().getFirstName();
-        String o2Name = o2.getPerson().getLastName() + " " + o2.getPerson().getFirstName();
-        return o1Name.compareToIgnoreCase(o2Name);
-      }
-    });
-
-    return recordList;
-  }
-
-  public Set<Long> getIdSet() {
-    return map.keySet();
   }
 
   /* (non-Javadoc)
    * @see org.cyborgs3335.checkin.server.http.ICheckInDataStore#getAttendanceRecord(long)
    */
   @Override
-  public AttendanceRecord getAttendanceRecord(long id) {
-    AttendanceRecord record = null;
-    synchronized (map) {
-      record = map.get(id);
+  public AttendanceRecord getAttendanceRecord(long id) throws IOException {
+    try {
+      return dbConnection.getAttendanceRecord(id);
+    } catch (SQLException e) {
+      throw new IOException("Caught SQLException during getAttendanceRecord.", e);
     }
-    return record;
   }
 
   /* (non-Javadoc)
    * @see org.cyborgs3335.checkin.server.http.ICheckInDataStore#checkOutAll()
    */
   @Override
-  public void checkOutAll() {
-    synchronized (map) {
-      for (Long id : map.keySet()) {
-        AttendanceRecord record = map.get(id);
+  public void checkOutAll() throws IOException {
+    try {
+      ArrayList<Long> personIds = dbConnection.getPersonList();
+      for (Long id : personIds) {
+        AttendanceRecord record = getAttendanceRecord(id);
         CheckInEvent event = record.getLastEvent();
         if (event.getStatus().equals(CheckInEvent.Status.CheckedIn)) {
-          if (activity != null) {
-            map.get(id).getEventList().add(new CheckInEvent(activity,
-                CheckInEvent.Status.CheckedOut, System.currentTimeMillis()));
-          } else {
-            map.get(id).getEventList().add(new CheckInEvent(CheckInEvent.DEFAULT_ACTIVITY,
-                CheckInEvent.Status.CheckedOut, System.currentTimeMillis()));
+          CheckInActivity activity = dbConnection.getCurrentCheckInActivity();
+          if (activity == null) {
+            activity = CheckInEvent.DEFAULT_ACTIVITY;
+          }
+          boolean success = checkOut(id);
+          if (!success) {
+            throw new IOException("Failed to checkout person " + dbConnection.getPerson(id));
           }
         }
         System.out.println("id " + id + " name " + record.getPerson() + " check out "
             + dateFormat.format(new Date(event.getTimeStamp())));
       }
+    } catch (SQLException e) {
+      throw new IOException("Caught SQLException during checkOutAll.", e);
+    } catch (UnknownUserException e) {
+      throw new IOException("Caught UnknownUserException during checkOutAll."
+          + "  Check database integrity!", e);
     }
   }
 
@@ -672,21 +624,24 @@ public class CheckInDataStore implements ICheckInDataStore {
    * @see org.cyborgs3335.checkin.server.http.ICheckInDataStore#printToString()
    */
   @Override
-  public String printToString() {
-    StringWriter writer = new StringWriter();
-    if (activity != null) {
-      writer.write(activity.printToString(dateFormat) + "\n");
-    }
-    synchronized (map) {
-      for (Long id : map.keySet()) {
-        AttendanceRecord record = map.get(id);
+  public String printToString() throws IOException {
+    try {
+      StringWriter writer = new StringWriter();
+      CheckInActivity activity = dbConnection.getCurrentCheckInActivity();
+      if (activity != null) {
+        writer.write(activity.printToString(dateFormat) + "\n");
+      }
+      for (Long id : dbConnection.getPersonList()) {
+        AttendanceRecord record = dbConnection.getAttendanceRecord(id);
         ArrayList<CheckInEvent> list = record.getEventList();
         CheckInEvent event = list.get(list.size()-1);
         writer.write("id " + id + " name " + record.getPerson() + " check-in "
             + event.getStatus() + " " + dateFormat.format(new Date(event.getTimeStamp())) + "\n");
       }
+      return writer.toString();
+    } catch (SQLException e) {
+      throw new IOException("Caught SQLException during printToString.", e);
     }
-    return writer.toString();
   }
 
   /* (non-Javadoc)
@@ -694,26 +649,30 @@ public class CheckInDataStore implements ICheckInDataStore {
    */
   @Override
   public List<PersonCheckInEvent> getLastCheckInEventsSorted() throws IOException {
-    ArrayList<PersonCheckInEvent> recordList = new ArrayList<PersonCheckInEvent>(map.keySet().size());
-    synchronized (map) {
-      for (Long id : map.keySet()) {
-        AttendanceRecord record = map.get(id);
-        if (id != record.getPerson().getId()) {
-          LOG.info("ID " + id + " does not match ID " + record.getPerson().getId()
-              + " for attendance record from person " + record.getPerson());
-        }
-        recordList.add(new PersonCheckInEvent(record.getPerson(), record.getLastEvent()));
+    try {
+      ArrayList<Long> personList = dbConnection.getPersonList();
+      ArrayList<PersonCheckInEvent> recordList = new ArrayList<PersonCheckInEvent>(personList.size());
+      for (Long id : personList) {
+        //AttendanceRecord record = dbConnection.getAttendanceRecord(id);
+        //if (id != record.getPerson().getId()) {
+        //  LOG.info("ID " + id + " does not match ID " + record.getPerson().getId()
+        //      + " for attendance record from person " + record.getPerson());
+        //}
+        //recordList.add(new PersonCheckInEvent(record.getPerson(), record.getLastEvent()));
+        recordList.add(new PersonCheckInEvent(dbConnection.getPerson(id), dbConnection.getLastEvent(id)));
       }
-    }
-    Collections.sort(recordList, new Comparator<PersonCheckInEvent>() {
+      Collections.sort(recordList, new Comparator<PersonCheckInEvent>() {
 
-      @Override
-      public int compare(PersonCheckInEvent o1, PersonCheckInEvent o2) {
-        String o1Name = o1.getPerson().getLastName() + " " + o1.getPerson().getFirstName();
-        String o2Name = o2.getPerson().getLastName() + " " + o2.getPerson().getFirstName();
-        return o1Name.compareToIgnoreCase(o2Name);
-      }
-    });
-    return recordList;
+        @Override
+        public int compare(PersonCheckInEvent o1, PersonCheckInEvent o2) {
+          String o1Name = o1.getPerson().getLastName() + " " + o1.getPerson().getFirstName();
+          String o2Name = o2.getPerson().getLastName() + " " + o2.getPerson().getFirstName();
+          return o1Name.compareToIgnoreCase(o2Name);
+        }
+      });
+      return recordList;
+    } catch (SQLException e) {
+      throw new IOException("Caught SQLException during getLastCheckInEventsSorted.", e);
+    }
   }
 }

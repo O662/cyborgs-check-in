@@ -33,13 +33,13 @@ public class CheckInHandler extends AbstractHandler {
 
   private static final String htmlContentType = "text/html; charset=utf-8";
 
-  private final CheckInDataStore dataStore;
+  private final ICheckInDataStore dataStore;
 
   private final String greeting = "Attendance System";
 
   private final String body = null;
 
-  public CheckInHandler(CheckInDataStore dataStore) {
+  public CheckInHandler(ICheckInDataStore dataStore) {
     this.dataStore = dataStore;
   }
 

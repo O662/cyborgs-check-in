@@ -15,6 +15,11 @@ import org.eclipse.jetty.server.Server;
 
 public class SimpleJettyServer {
 
+  public enum DataStoreType {
+    Memory,
+    Jdbc
+  }
+
   private static final Logger LOG = Logger.getLogger(SimpleJettyServer.class.getName());
 
   private static final String DATABASE_PATH_OPTION = "dbpath";
@@ -23,10 +28,14 @@ public class SimpleJettyServer {
 
   private static final String HELP_OPTION = "help";
 
-  private final CheckInDataStore dataStore;
+  private final ICheckInDataStore dataStore;
 
   public SimpleJettyServer(String databasePath) throws IOException {
-    dataStore = CheckInDataStore.getInstance();
+    this(databasePath, DataStoreType.Memory);
+  }
+
+  public SimpleJettyServer(String databasePath, DataStoreType type) throws IOException {
+    //dataStore = CheckInDataStore.getInstance();
     File dir = new File(databasePath);
     if (dir.exists()) {
       LOG.info("Loading attendance records from " + databasePath);
@@ -39,10 +48,21 @@ public class SimpleJettyServer {
             + "for saving database!");
       }
     }
-    dataStore.load(databasePath);
+    //dataStore.load(databasePath);
+    ICheckInDataStore store = null;
+    switch (type) {
+      case Memory:
+        store  = CheckInDataStore.getInstance().load(databasePath);
+        break;
+      case Jdbc:
+      default:
+        store  = CheckInDataStoreJdbc.getInstance().load(databasePath);
+        break;
+    }
+    dataStore  = store;
   }
 
-  public CheckInDataStore getDataStore() {
+  public ICheckInDataStore getDataStore() {
     return dataStore;
   }
 
@@ -109,7 +129,7 @@ public class SimpleJettyServer {
       System.exit(1);
     }
 
-    SimpleJettyServer sjs = new SimpleJettyServer(databasePath);
+    SimpleJettyServer sjs = new SimpleJettyServer(databasePath, DataStoreType.Jdbc);
     Server server = new Server(port);
     server.setHandler(new CheckInHandler(sjs.getDataStore()));
     server.start();
