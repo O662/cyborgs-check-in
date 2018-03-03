@@ -17,6 +17,7 @@ import java.util.logging.SimpleFormatter;
 import javax.swing.JOptionPane;
 
 import org.cyborgs3335.checkin.messenger.IMessenger;
+import org.cyborgs3335.checkin.server.http.HttpMessenger;
 import org.cyborgs3335.checkin.server.local.LocalMessenger;
 import org.cyborgs3335.checkin.ui.MainWindow;
 
@@ -39,14 +40,14 @@ public class MainApp implements IDatabaseOperations {
 
   public static final String CHECK_IN_APP_DIR = "CyborgsCheckIn";
 
-  private final LocalMessenger localMessenger;
+  private final IMessenger messenger;
   private final DateFormat dateFormat;
   private final String path;
   private FileWriter logWriter = null;
   private Component parent = null;
 
-  public MainApp(LocalMessenger messenger, String path) {
-    localMessenger = messenger;
+  public MainApp(IMessenger messenger, String path) {
+    this.messenger = messenger;
     this.path = path;
     dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z");
     //dateFormat = new SimpleDateFormat();
@@ -57,7 +58,11 @@ public class MainApp implements IDatabaseOperations {
    */
   @Override
   public IMessenger getMessenger() {
-    return localMessenger;
+    return messenger;
+  }
+
+  public boolean isLocalMessenger() {
+    return messenger instanceof LocalMessenger;
   }
 
   /**
@@ -204,14 +209,18 @@ public class MainApp implements IDatabaseOperations {
   private synchronized void saveDatabase(String newPath) {
     try {
       if (LOG.isLoggable(Level.FINE)) {
-        String buffer = localMessenger.lastCheckInEventToString();
+        String buffer = messenger.lastCheckInEventToString();
         System.out.print(buffer);
         logDatabase(buffer);
       }
-      localMessenger.save(newPath);
-      localMessenger.saveJson(newPath);
-      //System.out.println("Save complete.");
-      LOG.info("Save complete (" + newPath + ").");
+      if (isLocalMessenger()) {
+        ((LocalMessenger) messenger).save(newPath);
+        ((LocalMessenger) messenger).saveJson(newPath);
+        //System.out.println("Save complete.");
+        LOG.info("Save complete (" + newPath + ").");
+      } else {
+        LOG.info("Save skipped for non-local database.");
+      }
     } catch (IOException e) {
       JOptionPane.showMessageDialog(parent, e.getMessage(), "Save Error", JOptionPane.ERROR_MESSAGE);
       e.printStackTrace();
@@ -221,8 +230,12 @@ public class MainApp implements IDatabaseOperations {
   @Override
   public void saveDatabaseCsv(String path) {
     try {
-      localMessenger.saveCsv(path);
-      LOG.info("CSV save complete (" + path + ").");
+      if (isLocalMessenger()) {
+        ((LocalMessenger) messenger).saveCsv(path);
+        LOG.info("CSV save complete (" + path + ").");
+      } else {
+        LOG.info("CSV save skipped for non-local database.");
+      }
     } catch (IOException e) {
       JOptionPane.showMessageDialog(parent, e.getMessage(), "CSV Save Error", JOptionPane.ERROR_MESSAGE);
       e.printStackTrace();
@@ -232,8 +245,12 @@ public class MainApp implements IDatabaseOperations {
   @Override
   public void saveDatabaseHoursByDayCsv(String path) {
     try {
-      localMessenger.saveHoursByDayCsv(path);
-      LOG.info("CSV save complete (" + path + ").");
+      if (isLocalMessenger()) {
+        ((LocalMessenger) messenger).saveHoursByDayCsv(path);
+        LOG.info("CSV save complete (" + path + ").");
+      } else {
+        LOG.info("CSV save skipped for non-local database.");
+      }
     } catch (IOException e) {
       JOptionPane.showMessageDialog(parent, e.getMessage(), "CSV Save Error", JOptionPane.ERROR_MESSAGE);
       e.printStackTrace();
@@ -243,8 +260,12 @@ public class MainApp implements IDatabaseOperations {
   @Override
   public void saveDatabaseJson(String path) {
     try {
-      localMessenger.saveJson(path);
-      LOG.info("JSON save complete (" + path + ").");
+      if (isLocalMessenger()) {
+        ((LocalMessenger) messenger).saveJson(path);
+        LOG.info("JSON save complete (" + path + ").");
+      } else {
+        LOG.info("JSON save skipped for non-local database.");
+      }
     } catch (IOException e) {
       JOptionPane.showMessageDialog(parent, e.getMessage(), "JSON Save Error", JOptionPane.ERROR_MESSAGE);
     }
@@ -349,28 +370,31 @@ public class MainApp implements IDatabaseOperations {
     fh.setFormatter(new SimpleFormatter());
 
     String path = getAndCreateCheckInAppDir() + File.separator + "test_createdatabase_check-in-server.dump";
-    LocalMessenger localMessenger = new LocalMessenger(path);
+    IMessenger messenger = new LocalMessenger(path);
+    //String serverUrl = "http://localhost:8080/attendance";
+    //IMessenger messenger = new HttpMessenger(serverUrl);
+    //IMessenger messenger = new HttpMessenger("http://macyfive.net:8888/attendance");
 
-    MainApp app = new MainApp(localMessenger, path);
+    MainApp app = new MainApp(messenger, path);
 
     long timeStart = System.currentTimeMillis();
     long timeEnd = timeStart + 60L*60L*1000L;
-    if (localMessenger.getActivity() == null) {
+    if (messenger.getActivity() == null) {
       CheckInActivity activity = new CheckInActivity("Default", timeStart, timeEnd);
-      localMessenger.setActivity(activity);
+      messenger.setActivity(activity);
     }
 
     if (LOG.isLoggable(Level.FINE)) {
-      String buffer = localMessenger.lastCheckInEventToString();
+      String buffer = messenger.lastCheckInEventToString();
       System.out.print(buffer);
       app.logDatabase(buffer);
     }
     app.runAutoSave(path + "_auto_save", 60L * 1000L, 120L * 1000L, true);
     app.scanIdsUi();
     if (startSerialPortScan) {
-      scanIdsSerial(localMessenger, portName, true);
+      scanIdsSerial(messenger, portName, true);
     }
-    scanIdsTerminal(localMessenger);
+    scanIdsTerminal(messenger);
     app.exitApp();
     //server.print();
     //server.dump(path);

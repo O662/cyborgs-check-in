@@ -589,7 +589,7 @@ public class MainWindow extends JFrame {
       lastNameField.setEditable(false);
       try {
         String statusText = "";
-        RequestResponse response = dbOperations.getMessenger().checkOut(person.getId());
+        RequestResponse response = dbOperations.getMessenger().checkIn(person.getId());
         switch (response) {
           case Ok:
             statusText = "Checked in " + firstName + " " + lastName + " at " + dateFormat.format(new Date());
