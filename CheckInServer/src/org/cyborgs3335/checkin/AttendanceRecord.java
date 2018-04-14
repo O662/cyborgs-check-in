@@ -185,6 +185,50 @@ public class AttendanceRecord implements Serializable {
     return vals;
   }
 
+  /**
+   * Get start and end event times by day.
+   * @param timeStampBegin time stamp for starting day
+   * @param numDays number of days
+   * @return 2D array of start and end event times in milliseconds,
+   *         with the fastest dimension an array of {start time, end time}
+   */
+  public long[][] getEventTimesByDay(long timeStampBegin, int numDays) {
+    long[][] vals = new long[numDays][2];
+    Calendar cal = Calendar.getInstance();
+    cal.setTimeInMillis(timeStampBegin);
+    int startDay = cal.get(Calendar.DAY_OF_YEAR);
+    int startYear = cal.get(Calendar.YEAR);
+
+    if (!areEventsConsistent()) {
+      return vals;
+    }
+    if (eventList.size() == 1) {
+      return vals;
+    }
+    for (int i = 1; i < eventList.size() - 1; i += 2) {
+      long timeStamp = eventList.get(i).getTimeStamp();
+      if (timeStamp < 0) {
+        LOG.info("less than zero for " + person);
+      }
+      cal.setTimeInMillis(timeStamp);
+      int day = cal.get(Calendar.DAY_OF_YEAR);
+      int year = cal.get(Calendar.YEAR);
+      int index = (year - startYear) * 365 + (day - startDay); // TODO account for leap years!!!
+      vals[index][0] = timeStamp;
+      vals[index][1] = eventList.get(i + 1).getTimeStamp();
+    }
+    if (getLastEvent().getStatus().equals(CheckInEvent.Status.CheckedIn)) {
+      long timeStamp = getLastEvent().getTimeStamp();
+      cal.setTimeInMillis(timeStamp);
+      int day = cal.get(Calendar.DAY_OF_YEAR);
+      int year = cal.get(Calendar.YEAR);
+      int index = (year - startYear) * 365 + (day - startDay); // TODO account for leap years!!!
+      vals[index][0] = timeStamp;
+      vals[index][1] = System.currentTimeMillis();
+    }
+    return vals;
+  }
+
   /*
   public double getHoursByDay(Date startDate, Date endDate) {
     Calendar scal = Calendar.getInstance();

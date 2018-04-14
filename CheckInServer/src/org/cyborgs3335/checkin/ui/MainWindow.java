@@ -6,6 +6,8 @@ import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -16,13 +18,16 @@ import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -35,10 +40,11 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.SwingConstants;
 import javax.swing.WindowConstants;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 import javax.swing.text.BadLocationException;
 
 import org.cyborgs3335.checkin.CheckInActivity;
@@ -299,82 +305,40 @@ public class MainWindow extends JFrame {
     // Load
     JMenuItem loadMenuItem = new JMenuItem("Load...");
     loadMenuItem.setMnemonic(KeyEvent.VK_L);
-    loadMenuItem.addActionListener(new ActionListener() {
-
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        loadDatabase();
-      }
-    });
+    loadMenuItem.addActionListener(e -> loadDatabase());
     loadMenuItem.setEnabled(false);
     fileMenu.add(loadMenuItem);
     // Save
     JMenuItem saveMenuItem = new JMenuItem("Save");
     saveMenuItem.setMnemonic(KeyEvent.VK_S);
-    saveMenuItem.addActionListener(new ActionListener() {
-
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        saveDatabase();
-      }
-    });
+    saveMenuItem.addActionListener(e -> saveDatabase());
     fileMenu.add(saveMenuItem);
     // Save As CSV
     JMenuItem saveCsvMenuItem = new JMenuItem("Save As CSV...");
     saveCsvMenuItem.setMnemonic(KeyEvent.VK_C);
-    saveCsvMenuItem.addActionListener(new ActionListener() {
-
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        saveDatabaseCsv();
-      }
-    });
+    saveCsvMenuItem.addActionListener(e -> saveDatabaseCsv());
     fileMenu.add(saveCsvMenuItem);
     // Save As Hours-by-Day CSV
     JMenuItem saveHoursByDayCsvMenuItem = new JMenuItem("Save As Hours-by-Day CSV...");
     //saveHoursByDayCsvMenuItem.setMnemonic(KeyEvent.VK_C);
-    saveHoursByDayCsvMenuItem.addActionListener(new ActionListener() {
-
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        saveDatabaseHoursByDayCsv();
-      }
-    });
+    saveHoursByDayCsvMenuItem.addActionListener(e -> saveDatabaseHoursByDayCsv());
     fileMenu.add(saveHoursByDayCsvMenuItem);
     // Save As JSON
     JMenuItem saveJsonMenuItem = new JMenuItem("Save As JSON...");
     saveJsonMenuItem.setMnemonic(KeyEvent.VK_J);
-    saveJsonMenuItem.addActionListener(new ActionListener() {
-
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        saveDatabaseJson();
-      }
-    });
+    saveJsonMenuItem.addActionListener(e -> saveDatabaseJson());
     fileMenu.add(saveJsonMenuItem);
     // Exit
     JMenuItem exitMenuItem = new JMenuItem("Exit");//, KeyEvent.VK_X);
     exitMenuItem.setMnemonic(KeyEvent.VK_X);
-    exitMenuItem.addActionListener(new ActionListener() {
-
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        exitApp();
-      }
-    });
+    exitMenuItem.addActionListener(e -> exitApp());
     fileMenu.add(exitMenuItem);
     menubar.add(fileMenu);
 
     // Edit menu
     JMenu editMenu = new JMenu("Edit");
     JMenuItem activityMenuItem = new JMenuItem("Set activity...");
-    activityMenuItem.addActionListener(new ActionListener() {
-
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        new SessionWindow(dbOperations.getMessenger());
-      }
-    });
+    activityMenuItem.addActionListener(e -> new SessionWindow(dbOperations.getMessenger()));
     editMenu.add(activityMenuItem);
     JMenuItem fullCheckOutMenuItem = new JMenuItem("Full check out...");
     final Component parent = this;
@@ -387,8 +351,7 @@ public class MainWindow extends JFrame {
         } catch (IOException e1) {
           e1.printStackTrace();
           JOptionPane.showMessageDialog(parent, "Received IOException while trying to perform a full checkout: "
-              + e1.getMessage(), "Checkout All Error",
-              JOptionPane.ERROR_MESSAGE);
+              + e1.getMessage(), "Checkout All Error", JOptionPane.ERROR_MESSAGE);
         }
       }
     });
@@ -398,69 +361,14 @@ public class MainWindow extends JFrame {
     // View menu
     final JMenu viewMenu = new JMenu("View");
     JMenuItem viewRecordsMenuItem = new JMenuItem("View records...");
-    viewRecordsMenuItem.addActionListener(new ActionListener() {
-
-      JFrame frame = null;
-      JTable table = null;
-
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        if (frame != null && table != null) {
-          table.setModel(new SortedCheckInTableModel(dbOperations.getMessenger()));
-          frame.setVisible(true);
-        } else {
-          JTextArea recordArea = new JTextArea();
-          table = new JTable(new SortedCheckInTableModel(dbOperations.getMessenger()));
-          JScrollPane scrollPane = new JScrollPane(/*recordArea*/table);
-          table.setFillsViewportHeight(true);
-          scrollPane.setPreferredSize(new Dimension(880, 450));
-          try {
-            String buffer = dbOperations.getMessenger().lastCheckInEventToString();
-            recordArea.append(buffer);
-          } catch (IOException e1) {
-            String buffer = "Received IOException when fetching check-in events:\n"
-                + e1.getMessage() + "\n";
-            for (StackTraceElement element : e1.getStackTrace()) {
-              buffer += "\tat " + element.toString() + "\n";
-            }
-            recordArea.append(buffer);
-            System.out.println("Received IOException when fetching check-in events:");
-            e1.printStackTrace();
-          }
-          //JOptionPane.showMessageDialog(viewMenu, scrollPane, "Attendance Records", JOptionPane.PLAIN_MESSAGE);
-          JPanel panel = new JPanel(new BorderLayout(5, 5));
-          JPanel bpanel = new JPanel();
-          JButton refreshButton = new JButton("Refresh");
-          refreshButton.setToolTipText("Refresh table contents");
-          refreshButton.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-              table.setModel(new SortedCheckInTableModel(dbOperations.getMessenger()));;
-            }
-          });
-          JButton dismissButton = new JButton("Dismiss");
-          dismissButton.setToolTipText("Dismiss dialog");
-          dismissButton.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-              frame.dispose();
-            }
-          });
-          bpanel.add(refreshButton);
-          bpanel.add(dismissButton);
-          panel.add(scrollPane, BorderLayout.CENTER);
-          panel.add(bpanel, BorderLayout.SOUTH);
-          frame = new JFrame("Attendance Records");
-          frame.add(panel);
-          frame.pack();
-          frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-          frame.setVisible(true);
-        }
-      }
-    });
+    viewRecordsMenuItem.addActionListener(new ViewRecordsActionListener());
     viewMenu.add(viewRecordsMenuItem);
+    JMenuItem viewAllRecordsMenuItem = new JMenuItem("View all records...");
+    viewAllRecordsMenuItem.addActionListener(new ViewAllRecordsActionListener());
+    viewMenu.add(viewAllRecordsMenuItem);
+    JMenuItem viewAllRecordsMenuItem2 = new JMenuItem("View all detailed records...");
+    viewAllRecordsMenuItem2.addActionListener(new ViewAllRecordsActionListener2());
+    viewMenu.add(viewAllRecordsMenuItem2);
     menubar.add(viewMenu);
 
     return menubar;
@@ -700,7 +608,8 @@ public class MainWindow extends JFrame {
 
   private class AddUserActionListener implements ActionListener {
 
-    final Component parent;
+    private final Component parent;
+
     public AddUserActionListener(Component parent) {
       this.parent = parent;
     }
@@ -777,6 +686,278 @@ public class MainWindow extends JFrame {
       addButton.setEnabled(false);
       checkInButton.setEnabled(false);
       checkOutButton.setEnabled(false);
+    }
+  }
+
+  private class ViewRecordsActionListener implements ActionListener {
+
+    private JFrame frame = null;
+    private JTable table = null;
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+      if (frame != null && table != null) {
+        table.setModel(new SortedCheckInTableModel(dbOperations.getMessenger()));
+        frame.setVisible(true);
+      } else {
+        JTextArea recordArea = new JTextArea();
+        table = new JTable(new SortedCheckInTableModel(dbOperations.getMessenger()));
+        JScrollPane scrollPane = new JScrollPane(/*recordArea*/table);
+        table.setFillsViewportHeight(true);
+        scrollPane.setPreferredSize(new Dimension(880, 450));
+        try {
+          String buffer = dbOperations.getMessenger().lastCheckInEventToString();
+          recordArea.append(buffer);
+        } catch (IOException e1) {
+          String buffer = "Received IOException when fetching check-in events:\n"
+              + e1.getMessage() + "\n";
+          for (StackTraceElement element : e1.getStackTrace()) {
+            buffer += "\tat " + element.toString() + "\n";
+          }
+          recordArea.append(buffer);
+          System.out.println("Received IOException when fetching check-in events:");
+          e1.printStackTrace();
+        }
+        //JOptionPane.showMessageDialog(viewMenu, scrollPane, "Attendance Records", JOptionPane.PLAIN_MESSAGE);
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        JPanel bpanel = new JPanel();
+        JButton refreshButton = new JButton("Refresh");
+        refreshButton.setToolTipText("Refresh table contents");
+        refreshButton.addActionListener(evt -> table.setModel(new SortedCheckInTableModel(dbOperations.getMessenger())));
+        JButton dismissButton = new JButton("Dismiss");
+        dismissButton.setToolTipText("Dismiss dialog");
+        dismissButton.addActionListener(evt -> frame.dispose());
+        bpanel.add(refreshButton);
+        bpanel.add(dismissButton);
+        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(bpanel, BorderLayout.SOUTH);
+        frame = new JFrame("Latest Attendance Record");
+        frame.add(panel);
+        frame.pack();
+        frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        frame.setVisible(true);
+      }
+    }
+  }
+
+  private class ViewAllRecordsActionListener implements ActionListener {
+
+    private JFrame frame = null;
+    private JTable table = null;
+    private InactiveTableColumns inactiveTableColumns = null;
+    private JCheckBox hideInactiveColumns = null;
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+      if (frame != null && table != null) {
+        table.setModel(new SortedRecordsTableModel(dbOperations.getMessenger()));
+        inactiveTableColumns.recomputeColumns();
+        inactiveTableColumns.showInactive(!hideInactiveColumns.isSelected());
+        frame.setVisible(true);
+      } else {
+        JTextArea recordArea = new JTextArea();
+        table = new JTable(new SortedRecordsTableModel(dbOperations.getMessenger()));
+        inactiveTableColumns = new InactiveTableColumns(table);
+        JScrollPane scrollPane = new JScrollPane(/*recordArea*/table);
+        table.setFillsViewportHeight(true);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        //table.getColumnModel().getColumn(0).setPreferredWidth(50);
+        //table.getColumnModel().getColumn(1).setPreferredWidth(100);
+        scrollPane.setPreferredSize(new Dimension(880, 450));
+        //FixedColumnTable fct = new FixedColumnTable(2, scrollPane);
+        try {
+          String buffer = dbOperations.getMessenger().lastCheckInEventToString();
+          recordArea.append(buffer);
+        } catch (IOException e1) {
+          String buffer = "Received IOException when fetching check-in events:\n"
+              + e1.getMessage() + "\n";
+          for (StackTraceElement element : e1.getStackTrace()) {
+            buffer += "\tat " + element.toString() + "\n";
+          }
+          recordArea.append(buffer);
+          System.out.println("Received IOException when fetching check-in events:");
+          e1.printStackTrace();
+        }
+        //JOptionPane.showMessageDialog(viewMenu, scrollPane, "Attendance Records", JOptionPane.PLAIN_MESSAGE);
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        JPanel bpanel = new JPanel();
+        JButton refreshButton = new JButton("Refresh");
+        refreshButton.setToolTipText("Refresh table contents");
+        refreshButton.addActionListener(evt -> {
+          table.setModel(new SortedRecordsTableModel(dbOperations.getMessenger()));
+          inactiveTableColumns.recomputeColumns();
+          inactiveTableColumns.showInactive(!hideInactiveColumns.isSelected());
+        });
+        JButton dismissButton = new JButton("Dismiss");
+        dismissButton.setToolTipText("Dismiss dialog");
+        dismissButton.addActionListener(evt -> frame.dispose());
+        hideInactiveColumns = new JCheckBox("Hide inactive days");
+        hideInactiveColumns.addItemListener(new InactiveColumnsItemListener(inactiveTableColumns));
+        bpanel.add(refreshButton);
+        bpanel.add(dismissButton);
+        bpanel.add(hideInactiveColumns);
+        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(bpanel, BorderLayout.SOUTH);
+        frame = new JFrame("Attendance Records");
+        frame.add(panel);
+        frame.pack();
+        frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        frame.setVisible(true);
+      }
+    }
+  }
+
+  private class ViewAllRecordsActionListener2 implements ActionListener {
+
+    private JFrame frame = null;
+    private JTable table = null;
+    private InactiveTableColumns inactiveTableColumns = null;
+    private JCheckBox hideInactiveColumns = null;
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+      if (frame != null && table != null) {
+        table.setModel(new SortedRecordsTableModel2(dbOperations.getMessenger()));
+        inactiveTableColumns.recomputeColumns();
+        inactiveTableColumns.showInactive(!hideInactiveColumns.isSelected());
+        frame.setVisible(true);
+      } else {
+        JTextArea recordArea = new JTextArea();
+        table = new JTable(new SortedRecordsTableModel2(dbOperations.getMessenger()));
+        inactiveTableColumns = new InactiveTableColumns(table);
+        JScrollPane scrollPane = new JScrollPane(/*recordArea*/table);
+        table.setFillsViewportHeight(true);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        //table.getColumnModel().getColumn(0).setPreferredWidth(50);
+        //table.getColumnModel().getColumn(1).setPreferredWidth(100);
+        scrollPane.setPreferredSize(new Dimension(880, 450));
+        //FixedColumnTable fct = new FixedColumnTable(2, scrollPane);
+        try {
+          String buffer = dbOperations.getMessenger().lastCheckInEventToString();
+          recordArea.append(buffer);
+        } catch (IOException e1) {
+          String buffer = "Received IOException when fetching check-in events:\n"
+              + e1.getMessage() + "\n";
+          for (StackTraceElement element : e1.getStackTrace()) {
+            buffer += "\tat " + element.toString() + "\n";
+          }
+          recordArea.append(buffer);
+          System.out.println("Received IOException when fetching check-in events:");
+          e1.printStackTrace();
+        }
+        //JOptionPane.showMessageDialog(viewMenu, scrollPane, "Attendance Records", JOptionPane.PLAIN_MESSAGE);
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        JPanel bpanel = new JPanel();
+        JButton refreshButton = new JButton("Refresh");
+        refreshButton.setToolTipText("Refresh table contents");
+        refreshButton.addActionListener(evt -> {
+          table.setModel(new SortedRecordsTableModel2(dbOperations.getMessenger()));
+          inactiveTableColumns.recomputeColumns();
+          inactiveTableColumns.showInactive(!hideInactiveColumns.isSelected());
+        });
+        JButton dismissButton = new JButton("Dismiss");
+        dismissButton.setToolTipText("Dismiss dialog");
+        dismissButton.addActionListener(evt -> frame.dispose());
+        hideInactiveColumns = new JCheckBox("Hide inactive days");
+        hideInactiveColumns.addItemListener(new InactiveColumnsItemListener(inactiveTableColumns));
+        bpanel.add(refreshButton);
+        bpanel.add(dismissButton);
+        bpanel.add(hideInactiveColumns);
+        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(bpanel, BorderLayout.SOUTH);
+        frame = new JFrame("Attendance Records");
+        frame.add(panel);
+        frame.pack();
+        frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        frame.setVisible(true);
+      }
+    }
+  }
+
+  private class InactiveTableColumns {
+
+    private final JTable table;
+    private final List<TableColumn> allColumns;
+    private final List<TableColumn> activeColumns;
+
+    public InactiveTableColumns(JTable table) {
+      this.table = table;
+      allColumns = new ArrayList<TableColumn>();
+      activeColumns = new ArrayList<TableColumn>();
+      recomputeColumns();
+    }
+
+    public void recomputeColumns() {
+      allColumns.clear();
+      activeColumns.clear();
+      int colCount = table.getModel().getColumnCount();
+      int rowCount = table.getModel().getRowCount();
+      for (int icol = 0; icol < colCount; icol++) {
+        TableColumn tc = table.getColumnModel().getColumn(icol);
+        allColumns.add(tc);
+        boolean isActive = false;
+        for (int irow = 0; irow < rowCount; irow++) {
+          Object val = table.getValueAt(irow, icol);
+          if (val instanceof String) {
+            if (((String) val).equals("0.00")) {
+              isActive = false;
+            } else if (!((String) val).isEmpty()) {
+              isActive = true;
+              break;
+            }
+          } else {
+            isActive = true;
+            break;
+          }
+        }
+        if (isActive) {
+          activeColumns.add(tc);
+        }
+      }
+      System.out.println("All columns: " + allColumns.size() + " colCount " + colCount);
+      System.out.println("Active columns: " + activeColumns.size());
+    }
+
+    public void showInactive(boolean showInactive) {
+      TableColumnModel tcm = table.getColumnModel();
+      System.out.println("Before removing columns: " + tcm.getColumnCount());
+      int colCount = tcm.getColumnCount();
+      for (int icol = colCount - 1; icol >= 0; icol--) {
+        TableColumn tc = tcm.getColumn(icol);
+        tcm.removeColumn(tc);
+      }
+      if (showInactive) {
+        System.out.println("After removing columns (before adding all): " + tcm.getColumnCount());
+        for (TableColumn tc : allColumns) {
+          tcm.addColumn(tc);
+        }
+      } else {
+        System.out.println("After removing columns (before adding active): " + tcm.getColumnCount());
+        for (TableColumn tc : activeColumns) {
+          tcm.addColumn(tc);
+        }
+      }
+    }
+  }
+
+  private class InactiveColumnsItemListener implements ItemListener {
+
+    private final InactiveTableColumns inactiveTableColumns;
+
+    public InactiveColumnsItemListener(InactiveTableColumns inactiveTableColumns) {
+      this.inactiveTableColumns = inactiveTableColumns;
+    }
+
+    @Override
+    public void itemStateChanged(ItemEvent e) {
+      if (e.getStateChange() != ItemEvent.SELECTED && e.getStateChange() != ItemEvent.DESELECTED) {
+        return;
+      }
+      if (e.getStateChange() == ItemEvent.SELECTED) {
+        inactiveTableColumns.showInactive(false);
+      } else if (e.getStateChange() == ItemEvent.DESELECTED) {
+        inactiveTableColumns.showInactive(true);
+      }
     }
   }
 
@@ -965,13 +1146,7 @@ public class MainWindow extends JFrame {
   }
 
   public static void main(String[] args) {
-    EventQueue.invokeLater(new Runnable() {
-
-      @Override
-      public void run() {
-        new MainWindow();
-      }
-    });
+    EventQueue.invokeLater(() -> new MainWindow());
   }
 
 }
