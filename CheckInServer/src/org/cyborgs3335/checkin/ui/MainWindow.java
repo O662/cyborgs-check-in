@@ -43,6 +43,7 @@ import javax.swing.JTextField;
 import javax.swing.WindowConstants;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 import javax.swing.text.BadLocationException;
@@ -54,6 +55,7 @@ import org.cyborgs3335.checkin.Person;
 import org.cyborgs3335.checkin.UnknownUserException;
 import org.cyborgs3335.checkin.messenger.IMessenger;
 import org.cyborgs3335.checkin.messenger.IMessenger.RequestResponse;
+import org.cyborgs3335.checkin.util.CsvOutput;
 
 public class MainWindow extends JFrame {
 
@@ -791,10 +793,14 @@ public class MainWindow extends JFrame {
         JButton dismissButton = new JButton("Dismiss");
         dismissButton.setToolTipText("Dismiss dialog");
         dismissButton.addActionListener(evt -> frame.dispose());
+        JButton exportCsvButton = new JButton("Export To CSV");
+        exportCsvButton.setToolTipText("Export table data to a CSV file");
+        exportCsvButton.addActionListener(evt -> exportTableToCsv(table));
         hideInactiveColumns = new JCheckBox("Hide inactive days");
         hideInactiveColumns.addItemListener(new InactiveColumnsItemListener(inactiveTableColumns));
         bpanel.add(refreshButton);
         bpanel.add(dismissButton);
+        bpanel.add(exportCsvButton);
         bpanel.add(hideInactiveColumns);
         panel.add(scrollPane, BorderLayout.CENTER);
         panel.add(bpanel, BorderLayout.SOUTH);
@@ -1115,6 +1121,60 @@ public class MainWindow extends JFrame {
         }
         dbOperations.saveDatabaseJson(file.getAbsolutePath());
         //JOptionPane.showMessageDialog(parent, e.getMessage(), "JSON Save Error", JOptionPane.ERROR_MESSAGE);
+        break;
+      case JFileChooser.CANCEL_OPTION:
+        break;
+      case JFileChooser.ERROR_OPTION:
+      default:
+        break;
+    }
+  }
+
+  private void exportTableToCsv(JTable table) {
+    JFileChooser chooser = new JFileChooser();
+    int result = chooser.showSaveDialog(this);
+    switch (result) {
+      case JFileChooser.APPROVE_OPTION:
+        File file = chooser.getSelectedFile();
+        if (file.exists()) {
+          if (!file.isFile()) {
+            //TODO warn file not a regular file
+            JOptionPane.showMessageDialog(this, "File " + file + " is not a regular file."
+                + "  Please select a different file name.", "CSV Save Error",
+                JOptionPane.ERROR_MESSAGE);
+          }
+          //TODO ask user to overwrite
+          //textArea.append("error\n");
+          //e1.printStackTrace();
+          int confirmResult = JOptionPane.showConfirmDialog(this, "File " + file
+              + " already exists.  Overwrite?", "Overwrite CSV File?",
+              JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+          switch (confirmResult) {
+            case JOptionPane.YES_OPTION:
+              break;
+            case JOptionPane.NO_OPTION:
+              return;
+            case JOptionPane.CANCEL_OPTION:
+            default:
+              return;
+          }
+        } else {
+          try {
+            file.createNewFile();
+          } catch (IOException e) {
+            // TODO show error dialog to user
+            textArea.append(e.getMessage());
+            e.printStackTrace();
+          }
+        }
+        try {
+          CsvOutput.exportTableToCsv(file.getAbsolutePath(), table);
+        } catch (IOException e) {
+          JOptionPane.showMessageDialog(this, "Error exporting table to CSV file  " + file + ".", "CSV Save Error",
+              JOptionPane.ERROR_MESSAGE);
+          e.printStackTrace();
+        }
+        //JOptionPane.showMessageDialog(parent, e.getMessage(), "CSV Save Error", JOptionPane.ERROR_MESSAGE);
         break;
       case JFileChooser.CANCEL_OPTION:
         break;

@@ -7,9 +7,10 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -21,6 +22,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeListener;
 
 public class DateTimeChooser extends JPanel {
+
+  private static final Logger LOG = Logger.getLogger(DateTimeChooser.class.getName());
 
   private static final long serialVersionUID = 134144424786502001L;
 
@@ -163,7 +166,9 @@ public class DateTimeChooser extends JPanel {
 
   private void updateFromNewDate() {
     Date date = getDate();
-    System.out.println("new date: " + date);
+    if (LOG.isLoggable(Level.FINE)) {
+      LOG.fine("new date: " + date);
+    }
     //model.setValue(date);
   }
 
@@ -197,7 +202,9 @@ public class DateTimeChooser extends JPanel {
       @Override
       public void windowClosing(WindowEvent e) {
         //System.out.println("Date 1 is " + chooser.model.getDate() + " " + chooser.model.getDate().getTime());
-        System.out.println("Date 1 is " + chooser.getDate() + " " + chooser.getDate().getTime());
+        if (LOG.isLoggable(Level.FINE)) {
+          LOG.fine("Date 1 is " + chooser.getDate() + " " + chooser.getDate().getTime());
+        }
         super.windowClosing(e);
       }
     });
