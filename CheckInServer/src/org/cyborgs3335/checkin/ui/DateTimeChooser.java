@@ -1,33 +1,29 @@
 package org.cyborgs3335.checkin.ui;
 
 import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.event.FocusListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Calendar;
 import java.util.Date;
 
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
 //import javax.swing.SpinnerDateModel;
-import javax.swing.SpinnerListModel;
-import javax.swing.SpinnerModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-
-import org.cyborgs3335.checkin.ui.CyclingSpinnerMonthListModel.Month;
+import javax.swing.event.ChangeListener;
 
 public class DateTimeChooser extends JPanel {
 
   private static final long serialVersionUID = 134144424786502001L;
 
-  //private static String[] monthsOfYear = new String[] { "January", "February", "March", "April",
-  //    "May", "June", "July", "August", "September", "October", "November", "December" };
-  private static String[] monthsOfYear = new String[] { "Jan", "Feb", "Mar", "Apr",
-      "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
   private SpinnerNumberModel yearModel;
   private CyclingSpinnerMonthListModel monthModel;
   private CyclingSpinnerNumberModel dayModel;
@@ -35,21 +31,31 @@ public class DateTimeChooser extends JPanel {
   private CyclingSpinnerNumberModel minuteModel;
   //private SpinnerDateModel model;
   private final Calendar cal;
+  private final String dateLabel;
+  private final String timeLabel;
+  private JSpinner[] spinners;
 
   public DateTimeChooser() {
     this(Calendar.getInstance());
   }
 
   public DateTimeChooser(Calendar cal) {
-    super(new FlowLayout(FlowLayout.CENTER, 0, 5));
+    this(cal, "Date: ", "Time: ");
+  }
+
+  public DateTimeChooser(Calendar cal, String dateLabel, String timeLabel) {
+    super(new FlowLayout(FlowLayout.CENTER, 0, 0));
     this.cal = cal;
+    this.dateLabel = dateLabel;
+    this.timeLabel = timeLabel;
     build();
   }
 
   private void build() {
-    //Calendar cal = Calendar.getInstance();
+    // Remove fractional minutes
     cal.set(Calendar.SECOND, 0);
     cal.set(Calendar.MILLISECOND, 0);
+
     //model = new SpinnerDateModel(cal.getTime(), null, null, Calendar.MINUTE);
     //JSpinner timeSpinner = new JSpinner(model);
     //JSpinner.DateEditor timeEditor = new JSpinner.DateEditor(timeSpinner, "MM/dd/yyyy HH:mm");
@@ -57,7 +63,7 @@ public class DateTimeChooser extends JPanel {
 
     yearModel = new SpinnerNumberModel();
     JSpinner yearSpinner = new JSpinner(yearModel);
-    yearSpinner.setEditor(new JSpinner.NumberEditor(yearSpinner, "#"));
+    yearSpinner.setEditor(getNumberEditor(yearSpinner, "#"));
     monthModel = new CyclingSpinnerMonthListModel();//monthsOfYear);
     monthModel.setYearModel(yearModel);
     JSpinner monthSpinner = new JSpinner(monthModel);
@@ -70,14 +76,15 @@ public class DateTimeChooser extends JPanel {
     dayModel.setLinkedModel(monthModel);
     monthModel.setDayModel(dayModel);
     JSpinner daySpinner = new JSpinner(dayModel);
+    daySpinner.setEditor(getNumberEditor(daySpinner, "#"));
     hourModel = new CyclingSpinnerNumberModel(0, 0, 23, 1);
     hourModel.setLinkedModel(dayModel);
     JSpinner hourSpinner = new JSpinner(hourModel);
-    hourSpinner.setEditor(new JSpinner.NumberEditor(hourSpinner, "00"));
+    hourSpinner.setEditor(getNumberEditor(hourSpinner, "00"));
     minuteModel = new CyclingSpinnerNumberModel(0, 0, 55, 5);
     minuteModel.setLinkedModel(hourModel);
     JSpinner minuteSpinner = new JSpinner(minuteModel);
-    minuteSpinner.setEditor(new JSpinner.NumberEditor(minuteSpinner, "00"));
+    minuteSpinner.setEditor(getNumberEditor(minuteSpinner, "00"));
     setValues(cal);
 
     //timeSpinner.addChangeListener(e -> updateFromOldDate());
@@ -86,17 +93,28 @@ public class DateTimeChooser extends JPanel {
     daySpinner.addChangeListener(e -> updateFromNewDate());
     hourSpinner.addChangeListener(e -> updateFromNewDate());
     minuteSpinner.addChangeListener(e -> updateFromNewDate());
+    spinners = new JSpinner[] {
+      yearSpinner, monthSpinner, daySpinner, hourSpinner, minuteSpinner
+    };
 
     //add(timeSpinner);
     add(new JLabel(" "));
-    add(new JLabel("Date: "));
+    add(new JLabel(dateLabel));
     add(monthSpinner);
     add(daySpinner);
     add(yearSpinner);
     add(new JLabel(" "));
-    add(new JLabel("Time: "));
+    add(Box.createHorizontalStrut(5));
+    add(new JLabel(timeLabel));
     add(hourSpinner);
     add(minuteSpinner);
+  }
+
+  private JSpinner.NumberEditor getNumberEditor(JSpinner spinner, String decimalFormatPattern) {
+    JSpinner.NumberEditor editor = new JSpinner.NumberEditor(spinner, decimalFormatPattern);
+    // Change bold font style back to plain
+    spinner.setFont(new Font(spinner.getFont().getFamily(), Font.PLAIN, spinner.getFont().getSize()));
+    return editor;
   }
 
   public void setDate(Date date) {
@@ -107,18 +125,36 @@ public class DateTimeChooser extends JPanel {
 
   public Date getDate() {
     Calendar cal = Calendar.getInstance();
-    //cal.set((int) yearModel.getNumber(), getMonthFromString((String) monthModel.getValue()),
-    //    (int) dayModel.getNumber(), (int) hourModel.getNumber(), (int) minuteModel.getNumber(), 0);
-    cal.set((int) yearModel.getNumber(), monthModel.getMonth(),
-        (int) dayModel.getNumber(), (int) hourModel.getNumber(), (int) minuteModel.getNumber(), 0);
+    cal.set((int) yearModel.getNumber(), monthModel.getMonth(), (int) dayModel.getNumber(),
+        (int) hourModel.getNumber(), (int) minuteModel.getNumber(), 0);
     //cal.set(Calendar.SECOND, 0);
     cal.set(Calendar.MILLISECOND, 0);
     return cal.getTime();
   }
 
+  @Override
+  public synchronized void addFocusListener(FocusListener l) {
+    for (JSpinner s : spinners) {
+      s.addFocusListener(l);
+    }
+    super.addFocusListener(l);
+  }
+
+  public synchronized void addChangeListener(ChangeListener l) {
+    for (JSpinner s : spinners) {
+      s.addChangeListener(l);
+    }
+  }
+
+  public void setDateEnabled(boolean b) {
+    for (int i = 0; i < 3; i++) {
+      spinners[i].setEnabled(b);
+    }
+    hourModel.setLinkedModel(b ? dayModel : null);
+  }
+
   private void setValues(Calendar c) {
     yearModel.setValue(c.get(Calendar.YEAR));
-    //monthModel.setValue(monthsOfYear[c.get(Calendar.MONTH)]);
     monthModel.setMonth(c.get(Calendar.MONTH));
     dayModel.setValue(c.get(Calendar.DAY_OF_MONTH));
     hourModel.setValue(c.get(Calendar.HOUR_OF_DAY));
@@ -138,56 +174,6 @@ public class DateTimeChooser extends JPanel {
     Calendar c = Calendar.getInstance();
     c.setTime(date);
     setValues(c);
-  }
-  */
-
-  private int getMonthFromString(String month) {
-    int mon = 0;
-    for (int i = 0; i < 12; i++) {
-      if (month.equalsIgnoreCase(monthsOfYear[i])) {
-        return i;
-      }
-    }
-    return mon;
-  }
-
-  /*
-  public class CyclingSpinnerListModel extends SpinnerListModel {
-    private static final long serialVersionUID = -8316177225260661649L;
-    Object firstValue, lastValue;
-    SpinnerModel linkedModel = null;
-
-    public CyclingSpinnerListModel(Object[] values) {
-      super(values);
-      firstValue = values[0];
-      lastValue = values[values.length - 1];
-    }
-
-    public void setLinkedModel(SpinnerModel linkedModel) {
-      this.linkedModel = linkedModel;
-    }
-
-    public Object getNextValue() {
-      Object value = super.getNextValue();
-      if (value == null) {
-        value = firstValue;
-        if (linkedModel != null) {
-          linkedModel.setValue(linkedModel.getNextValue());
-        }
-      }
-      return value;
-    }
-
-    public Object getPreviousValue() {
-      Object value = super.getPreviousValue();
-      if (value == null) {
-        value = lastValue;
-        if (linkedModel != null) {
-          linkedModel.setValue(linkedModel.getPreviousValue());
-        }
-      }
-      return value;
-    }
   }
   */
 
@@ -224,7 +210,7 @@ public class DateTimeChooser extends JPanel {
   public static void main(String[] args) {
     SwingUtilities.invokeLater(() -> {
       //Turn off metal's use of bold fonts
-      UIManager.put("swing.boldMetal", Boolean.FALSE);
+      //UIManager.put("swing.boldMetal", Boolean.FALSE);
       createAndShowGUI();
     });
   }
